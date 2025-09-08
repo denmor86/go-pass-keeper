@@ -19,8 +19,6 @@ import (
 
 // TokenHandler интефрейс для работы с токеном
 type TokenHandler interface {
-	// BuildJWT - создание токена с ID пользователя
-	BuildJWT(userID string) (string, error)
 	// DecodeUserId - извлечение ID пользователя из токена
 	DecodeUserId(token string) (string, error)
 }

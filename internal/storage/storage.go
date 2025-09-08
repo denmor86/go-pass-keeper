@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"go-pass-keeper/internal/models"
+
+	"github.com/google/uuid"
 )
 
 type User interface {
-	Add(ctx context.Context, login string, password string) error
-	Get(ctx context.Context, login string) (*models.User, error)
+	Add(ctx context.Context, user *models.User) (uuid.UUID, error)
+	Get(ctx context.Context, login string, password string) (*models.User, error)
 }
 
 var (

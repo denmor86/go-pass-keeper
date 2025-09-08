@@ -14,8 +14,8 @@ import (
 
 type Database struct {
 	Pool   *pgxpool.Pool
-	Config *pgx.ConnConfig
-	DSN    string
+	config *pgx.ConnConfig
+	dsn    string
 }
 
 const (
@@ -33,7 +33,7 @@ func NewDatabase(dsn string) (*Database, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database config: %w", err)
 	}
-	return &Database{Pool: pool, Config: cfg.ConnConfig, DSN: dsn}, nil
+	return &Database{Pool: pool, config: cfg.ConnConfig, dsn: dsn}, nil
 }
 
 // Инициализация хранилища (создание БД, миграция)
@@ -42,7 +42,7 @@ func (s *Database) Initialize() error {
 	if err := s.CreateDatabase(context.Background()); err != nil {
 		return fmt.Errorf("error create database: %w", err)
 	}
-	if err := Migration(s.DSN); err != nil {
+	if err := Migration(s.dsn); err != nil {
 		return fmt.Errorf("error migrate database: %w", err)
 	}
 
@@ -79,23 +79,23 @@ func (s *Database) Close() error {
 
 func (s *Database) CreateDatabase(ctx context.Context) error {
 	// goose не умеет создавать БД
-	conn, err := pgx.ConnectConfig(ctx, s.Config)
+	conn, err := pgx.ConnectConfig(ctx, s.config)
 	if err != nil {
 		// если не получилось соединиться с БД из строки подключения
 		// пробуем использовать дефолтную БД
-		cfg := s.Config.Copy()
+		cfg := s.config.Copy()
 		cfg.Database = `postgres`
 		conn, err = pgx.ConnectConfig(ctx, cfg)
 		if err != nil {
 			return fmt.Errorf("failed to connect database: %w", err)
 		}
 		var exist bool
-		err = conn.QueryRow(ctx, CheckExist, s.Config.Database).Scan(&exist)
+		err = conn.QueryRow(ctx, CheckExist, s.config.Database).Scan(&exist)
 		if err != nil {
 			return fmt.Errorf("failed to check database exists: %w", err)
 		}
 		if !exist {
-			_, err = conn.Exec(ctx, fmt.Sprintf(CreateDatabase, s.Config.Database))
+			_, err = conn.Exec(ctx, fmt.Sprintf(CreateDatabase, s.config.Database))
 			if err != nil {
 				return fmt.Errorf("failed to create database: %w", err)
 			}
