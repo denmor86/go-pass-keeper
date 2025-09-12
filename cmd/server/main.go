@@ -2,7 +2,7 @@ package main
 
 import (
 	"go-pass-keeper/internal/app"
-	"go-pass-keeper/internal/config"
+	"go-pass-keeper/internal/grpcserver/config"
 	"go-pass-keeper/internal/logger"
 )
 

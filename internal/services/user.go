@@ -17,6 +17,7 @@ type TokenBuilder interface {
 	BuildJWT(userID string) (string, error)
 }
 
+// User - модель сервиса пользователей
 type User struct {
 	pb.UnimplementedUserServer
 
@@ -24,6 +25,7 @@ type User struct {
 	token TokenBuilder
 }
 
+// NewUser - метод создания сервиса работы с пользователями
 func NewUser(u storage.User, th TokenBuilder) *User {
 	return &User{
 		users: u,
@@ -31,6 +33,7 @@ func NewUser(u storage.User, th TokenBuilder) *User {
 	}
 }
 
+// Register - метод обработки запроса регистрации пользователя
 func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	uid, err := s.users.Add(ctx, &models.User{Email: request.GetEmail(), Password: request.GetPassword()})
 	switch err {
@@ -49,6 +52,7 @@ func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 	return &pb.RegisterResponse{Token: t}, nil
 }
 
+// Login - метод обработки запроса автооризации пользователя
 func (s User) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
 	u, err := s.users.Get(ctx, request.GetEmail(), request.GetPassword())
 	if err != nil {
@@ -67,6 +71,12 @@ func (s User) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginRes
 	return &pb.LoginResponse{Token: t}, nil
 }
 
+// RegisterService - метод регистрации сервиса
 func (s *User) RegisterService(r grpc.ServiceRegistrar) {
 	pb.RegisterUserServer(r, s)
+}
+
+// AuthFuncOverride - метод для кастомной обработки метода авторизации (использую для исключений проверки авторизации по токену)
+func (s *User) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
+	return ctx, nil
 }

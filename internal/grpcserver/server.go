@@ -80,7 +80,10 @@ func (s *Server) Start() error {
 		return fmt.Errorf("error listen tcp: %w", err)
 	}
 	// создаем сервер
-	s.server = grpc.NewServer()
+	s.server = grpc.NewServer(
+		grpc.ChainUnaryInterceptor(s.unaryInterceptors...),
+		grpc.ChainStreamInterceptor(s.streamInterceptors...),
+	)
 	// регистрируем обработчики
 	s.RegisterServices(s.services...)
 	//  запускаем сервер

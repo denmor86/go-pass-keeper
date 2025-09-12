@@ -4,10 +4,12 @@ package app
 
 import (
 	"fmt"
-	"go-pass-keeper/internal/config"
 	"go-pass-keeper/internal/grpcserver"
+	"go-pass-keeper/internal/grpcserver/config"
 	interceptors "go-pass-keeper/internal/grpcserver/interceptors"
 	"go-pass-keeper/internal/logger"
+	"go-pass-keeper/internal/services"
+	"go-pass-keeper/internal/storage"
 	"go-pass-keeper/internal/token"
 	"os"
 	"os/signal"
@@ -41,6 +43,17 @@ func (a *App) Run() {
 	if err != nil {
 		logger.Error("Error token handler", err.Error())
 	}
+	db, err := storage.NewDatabase(a.config.DatabaseDSN)
+	if err != nil {
+		logger.Error("Error create database", err.Error())
+	}
+	err = db.Initialize()
+	if err != nil {
+		logger.Error("Error initialize database", err.Error())
+	}
+	users := storage.NewUserStorage(db)
+	// сервис пользователей
+	us := services.NewUser(users, th)
 
 	s := grpcserver.NewServer(
 		// адрес
@@ -49,6 +62,8 @@ func (a *App) Run() {
 		grpcserver.UseUnaryInterceptors(interceptors.CreateUnaryInterceptors(th)...),
 		// перехватчики потоковых запросов
 		grpcserver.UseStreamInterceptors(interceptors.CreateStreamInterceptors(th)...),
+		// используемые сервисы
+		grpcserver.UseServices(us),
 	)
 
 	if err := s.Start(); err != nil {
@@ -61,12 +76,8 @@ func (a *App) Run() {
 	// Ждем сигнал остановки
 	<-stop
 	logger.Info("Shutdown signal received")
-	a.shutdown()
-}
 
-// shutdown - метод остановки запущенных серверов
-func (a *App) shutdown() {
-	// Stop для GRPC сервера
+	close(stop)
 	a.server.Stop()
 	logger.Info("Shutdown completed")
 }
