@@ -7,21 +7,25 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// ViewModel - модель окна просмотра секретов
 type ViewModel struct {
 	windowSize tea.WindowSizeMsg
 	content    string
 }
 
+// NewViewModel - метод для создания окна просмотра секретов
 func NewViewModel() ViewModel {
 	return ViewModel{
 		content: `Секретные данные`,
 	}
 }
 
+// Init - метод инициализации окна
 func (m ViewModel) Init() tea.Cmd {
 	return nil
 }
 
+// Update - метод для обновления окна по внешним сообщениям
 func (m ViewModel) Update(msg tea.Msg) (ViewModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -31,6 +35,7 @@ func (m ViewModel) Update(msg tea.Msg) (ViewModel, tea.Cmd) {
 	return m, nil
 }
 
+// View - метод для отрисовки окна, в зависимости от текущего состояния
 func (m ViewModel) View(username string) string {
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,

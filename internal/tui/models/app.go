@@ -12,18 +12,19 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Тип переменной состояние перехода
 type AppState int
 
+// Состояние переходов
 const (
 	AuthState AppState = iota
 	LoginState
 	RegisterState
-	MainState
 	ViewState
 	SettingsState
 )
 
-// Кнопки на гланном окне
+// Кнопки на главном окне
 const (
 	LoginButton = iota
 	RegisterButton
@@ -31,11 +32,11 @@ const (
 	SettingsButton
 )
 
+// AppModel - модель главного окна
 type AppModel struct {
 	state      AppState
 	login      LoginModel
 	register   RegisterModel
-	main       MainModel
 	view       ViewModel
 	settings   SettingsModel
 	viewport   viewport.Model
@@ -46,6 +47,7 @@ type AppModel struct {
 	config     *config.Config
 }
 
+// NewAppModel - метод для создания главного окна
 func NewAppModel(config *config.Config) AppModel {
 
 	connection := config.Load()
@@ -53,10 +55,9 @@ func NewAppModel(config *config.Config) AppModel {
 		state:    AuthState,
 		login:    NewLoginModel(connection),
 		register: NewRegisterModel(connection),
-		main:     NewMainModel(),
 		view:     NewViewModel(),
 		settings: NewSettingsModel(connection),
-		viewport: viewport.New(60, 10),
+		viewport: viewport.New(80, 20),
 		focused:  0,
 		username: "",
 		token:    "",
@@ -64,18 +65,20 @@ func NewAppModel(config *config.Config) AppModel {
 	}
 }
 
+// Init - метод инициализации окна
 func (m AppModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод для обновления окна по внешним сообщениям
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.windowSize = msg
-		m.viewport.Width = msg.Width - 4
-		m.viewport.Height = msg.Height - 10
+		m.viewport.Width = msg.Width
+		m.viewport.Height = msg.Height
 
 		// Передаем размеры окна всем дочерним моделям
 		updatedLogin, loginCmd := m.login.Update(msg)
@@ -84,17 +87,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		updatedRegister, registerCmd := m.register.Update(msg)
 		m.register = updatedRegister
 
-		updatedMain, mainCmd := m.main.Update(msg, m.viewport)
-		m.main = updatedMain
-		m.viewport = m.main.viewport
-
 		updatedView, viewCmd := m.view.Update(msg)
 		m.view = updatedView
 
 		updatedSettings, settingsCmd := m.settings.Update(msg)
 		m.settings = updatedSettings
 
-		return m, tea.Batch(loginCmd, registerCmd, mainCmd, viewCmd, settingsCmd)
+		return m, tea.Batch(loginCmd, registerCmd, viewCmd, settingsCmd)
 
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -109,7 +108,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.login.err = ""
 				m.register.err = ""
 				return m, nil
-			case MainState, ViewState, SettingsState:
+			case ViewState, SettingsState:
 				// Выход из главного экрана или просмотра
 				m.state = AuthState
 				return m, nil
@@ -120,11 +119,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case messages.AuthSuccessMsg:
-		m.state = MainState
+		m.state = AuthState
 		m.username = msg.Email
 		m.token = msg.Token
-		m.main.username = m.username
-		m.main.message = fmt.Sprintf("Добро пожаловать, %s!", m.username)
 		m.viewport.SetContent(fmt.Sprintf("Приветствуем, %s!\n\nВы успешно вошли в систему.\n\nЗдесь может быть ваш контент...", m.username))
 		return m, nil
 
@@ -143,7 +140,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Делегируем обновление текущему состоянию
+	// Обновление текущего состояния
 	switch m.state {
 	case AuthState:
 		return m.handleAuthUpdate(msg)
@@ -151,8 +148,6 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleLoginUpdate(msg)
 	case RegisterState:
 		return m.handleRegisterUpdate(msg)
-	case MainState:
-		return m.handleMainUpdate(msg)
 	case ViewState:
 		return m.handleViewUpdate(msg)
 	case SettingsState:
@@ -162,6 +157,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод для отрисовки окна, в зависимости от текущего состояния
 func (m AppModel) View() string {
 	switch m.state {
 	case AuthState:
@@ -170,8 +166,6 @@ func (m AppModel) View() string {
 		return m.login.View()
 	case RegisterState:
 		return m.register.View()
-	case MainState:
-		return m.main.View(m.viewport)
 	case ViewState:
 		return m.view.View(m.username)
 	case SettingsState:
@@ -181,6 +175,7 @@ func (m AppModel) View() string {
 	}
 }
 
+// renderAuthView - метод отрисовки основного окна
 func (m AppModel) renderAuthView() string {
 	// Статус пользователя
 	userStatus := m.getUserStatus()
@@ -225,6 +220,7 @@ func (m AppModel) renderAuthView() string {
 		)
 }
 
+// getUserStatus - метод для формирования текущего статуса авторизации
 func (m AppModel) getUserStatus() string {
 	if m.isAuthorized() {
 		return lipgloss.NewStyle().
@@ -239,6 +235,7 @@ func (m AppModel) getUserStatus() string {
 		Render("🔒 Не авторизован")
 }
 
+// renderLoginButton - метод отрисовки кнопки авторизации пользователя
 func (m AppModel) renderLoginButton() string {
 	text := "🔐 Вход в систему"
 	if LoginButton == m.focused {
@@ -251,6 +248,7 @@ func (m AppModel) renderLoginButton() string {
 		Render(text)
 }
 
+// renderRegisterButton - метод отрисовки кнопки регистрации пользователя
 func (m AppModel) renderRegisterButton() string {
 	text := "📝 Регистрация"
 	if RegisterButton == m.focused {
@@ -263,6 +261,7 @@ func (m AppModel) renderRegisterButton() string {
 		Render(text)
 }
 
+// renderViewButton - метод отрисовки кнопки просмотра секретов
 func (m AppModel) renderViewButton() string {
 	text := "👁️ Просмотр"
 
@@ -277,15 +276,17 @@ func (m AppModel) renderViewButton() string {
 			Render(text + " (требуется вход)")
 	}
 	if m.isAuthorized() {
-		return styles.DisabledButtonStyle.
+		return styles.ButtonStyle.
 			Margin(0, 0, 1, 0).
-			Render(text + " (требуется вход)")
+			Render(text)
 	}
-	return styles.ButtonStyle.
+	return styles.DisabledButtonStyle.
 		Margin(0, 0, 1, 0).
-		Render(text)
+		Render(text + " (требуется вход)")
+
 }
 
+// renderSettingsButton - метод отрисовки кнопки настроек клиента
 func (m AppModel) renderSettingsButton() string {
 	text := "⚙️ Настройки подключения"
 	if SettingsButton == m.focused {
@@ -298,6 +299,7 @@ func (m AppModel) renderSettingsButton() string {
 		Render(text)
 }
 
+// handleAuthUpdate - метод обработчик действий на кнопках основного окна
 func (m AppModel) handleAuthUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -335,37 +337,35 @@ func (m AppModel) handleAuthUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	return m, nil
 }
 
+// handleLoginUpdate - метод обработчик действий на кнопке авторизации пользователя
 func (m AppModel) handleLoginUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	updatedModel, cmd := m.login.Update(msg)
 	m.login = updatedModel
 	return m, cmd
 }
 
+// handleRegisterUpdate - метод обработчик действий на кнопке регистрации пользователя
 func (m AppModel) handleRegisterUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	updatedModel, cmd := m.register.Update(msg)
 	m.register = updatedModel
 	return m, cmd
 }
 
-func (m AppModel) handleMainUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
-	updatedModel, cmd := m.main.Update(msg, m.viewport)
-	m.main = updatedModel
-	m.viewport = m.main.viewport
-	return m, cmd
-}
-
+// handleViewUpdate - метод обработчик действий на кнопке просмотра секретов
 func (m AppModel) handleViewUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	updatedModel, cmd := m.view.Update(msg)
 	m.view = updatedModel
 	return m, cmd
 }
 
+// handleViewUpdate - метод обработчик действий на кнопке настроек клиента
 func (m AppModel) handleSettingsUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	updatedModel, cmd := m.settings.Update(msg)
 	m.settings = updatedModel
 	return m, cmd
 }
 
+// isAuthorized - метод определения наличия авторизации пользователя
 func (m AppModel) isAuthorized() bool {
 	return len(m.token) > 0
 }

@@ -12,6 +12,6 @@ type AuthSuccessMsg struct {
 type ConfigUpdatedMsg struct {
 	Connection settings.Connection
 }
-type AuthFailMsg string
+
+// ErrorMsg - сообщение с ошибкой
 type ErrorMsg string
-type ViewMsg string // Новое сообщение для просмотра

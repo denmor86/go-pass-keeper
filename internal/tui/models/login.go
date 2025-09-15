@@ -1,15 +1,20 @@
 package models
 
 import (
+	"context"
+	"fmt"
+	"go-pass-keeper/internal/grpcclient"
 	"go-pass-keeper/internal/grpcclient/settings"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+// LoginModel - модель окна авторизации пользователя
 type LoginModel struct {
 	inputs     []textinput.Model
 	focused    int
@@ -18,6 +23,7 @@ type LoginModel struct {
 	connection *settings.Connection
 }
 
+// NewLoginModel - метод для создания окна авторизации пользователя
 func NewLoginModel(connection *settings.Connection) LoginModel {
 	login := LoginModel{
 		inputs:     make([]textinput.Model, 2),
@@ -49,10 +55,12 @@ func NewLoginModel(connection *settings.Connection) LoginModel {
 	return login
 }
 
+// Init - метод инициализации окна
 func (m LoginModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод для обновления окна по внешним сообщениям
 func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -69,7 +77,7 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 			if s == "enter" {
 				username := m.inputs[0].Value()
 				password := m.inputs[1].Value()
-				return m, attemptLogin(m.connection.ServerAddress(), username, password)
+				return m, m.attemptLogin(username, password)
 			}
 
 			if s == "up" || s == "shift+tab" {
@@ -109,6 +117,7 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод для отрисовки окна, в зависимости от текущего состояния
 func (m LoginModel) View() string {
 	// Поля ввода
 	fields := make([]string, len(m.inputs))
@@ -187,4 +196,23 @@ func (m LoginModel) View() string {
 				lipgloss.WithWhitespaceForeground(styles.BackgroundColor),
 			),
 		)
+}
+
+// attemptLogin - метод обработки прохождения авторизации пользователя
+func (m LoginModel) attemptLogin(username string, password string) tea.Cmd {
+	return func() tea.Msg {
+		if username == "" || password == "" {
+			return messages.ErrorMsg("заполните все поля")
+		}
+		if len(password) < 6 {
+			return messages.ErrorMsg("пароль должен содержать минимум 6 символов")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
+		defer cancel()
+		token, err := grpcclient.LoginUser(ctx, m.connection.ServerAddress(), username, password)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка авторизации пользователя %s: %s", username, err.Error()))
+		}
+		return messages.AuthSuccessMsg{Token: token, Email: username}
+	}
 }

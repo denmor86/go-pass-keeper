@@ -20,6 +20,7 @@ type SettingsModel struct {
 	connection *settings.Connection
 }
 
+// NewSettingsModel - метод для создания окна настроек
 func NewSettingsModel(connection *settings.Connection) SettingsModel {
 	model := SettingsModel{
 		inputs:     make([]textinput.Model, 3),
@@ -54,10 +55,12 @@ func NewSettingsModel(connection *settings.Connection) SettingsModel {
 	return model
 }
 
+// Init - метод инициализации окна
 func (m SettingsModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод для обновления окна по внешним сообщениям
 func (m SettingsModel) Update(msg tea.Msg) (SettingsModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -127,6 +130,7 @@ func (m SettingsModel) Update(msg tea.Msg) (SettingsModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод для отрисовки окна, в зависимости от текущего состояния
 func (m SettingsModel) View() string {
 	// Поля ввода
 	fields := make([]string, len(m.inputs))

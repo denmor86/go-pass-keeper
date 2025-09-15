@@ -1,15 +1,20 @@
 package models
 
 import (
+	"context"
+	"fmt"
+	"go-pass-keeper/internal/grpcclient"
 	"go-pass-keeper/internal/grpcclient/settings"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+// LoginModel - модель окна регистрации пользователя
 type RegisterModel struct {
 	inputs     []textinput.Model
 	focused    int
@@ -18,6 +23,7 @@ type RegisterModel struct {
 	connection *settings.Connection
 }
 
+// NewLoginModel - метод для создания окна регистрации пользователя
 func NewRegisterModel(connection *settings.Connection) RegisterModel {
 	register := RegisterModel{
 		inputs:     make([]textinput.Model, 3),
@@ -52,10 +58,12 @@ func NewRegisterModel(connection *settings.Connection) RegisterModel {
 	return register
 }
 
+// Init - метод инициализации окна
 func (m RegisterModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод для обновления окна по внешним сообщениям
 func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -73,7 +81,7 @@ func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
 				username := m.inputs[0].Value()
 				password := m.inputs[1].Value()
 				confirm := m.inputs[2].Value()
-				return m, attemptRegister(m.connection.ServerAddress(), username, password, confirm)
+				return m, m.attemptRegister(username, password, confirm)
 			}
 
 			if s == "up" || s == "shift+tab" {
@@ -113,6 +121,7 @@ func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод для отрисовки окна, в зависимости от текущего состояния
 func (m RegisterModel) View() string {
 
 	// Поля ввода
@@ -194,4 +203,29 @@ func (m RegisterModel) View() string {
 				lipgloss.WithWhitespaceForeground(styles.BackgroundColor),
 			),
 		)
+}
+
+// attemptRegister - метод обработки прохождения регистрации пользователя
+func (m RegisterModel) attemptRegister(username string, password string, confirm string) tea.Cmd {
+	return func() tea.Msg {
+		if username == "" || password == "" || confirm == "" {
+			return messages.ErrorMsg("заполните все поля")
+		}
+		if len(username) < 3 {
+			return messages.ErrorMsg("имя пользователя должно содержать минимум 3 символа")
+		}
+		if len(password) < 6 {
+			return messages.ErrorMsg("пароль должен содержать минимум 6 символов")
+		}
+		if password != confirm {
+			return messages.ErrorMsg("пароли не совпадают")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
+		defer cancel()
+		token, err := grpcclient.RegisterUser(ctx, m.connection.ServerAddress(), username, password)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка регистрации пользователя %s: %s", username, err.Error()))
+		}
+		return messages.AuthSuccessMsg{Token: token, Email: username}
+	}
 }
