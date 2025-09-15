@@ -16,7 +16,7 @@ func RegisterUser(ctx context.Context, serverAddr string, login string, password
 
 	client := newUserClient(serverAddr)
 	resp, err := client.Register(ctx, &pb.RegisterRequest{
-		Email:    login,
+		Login:    login,
 		Password: password,
 	})
 
@@ -37,7 +37,7 @@ func RegisterUser(ctx context.Context, serverAddr string, login string, password
 func LoginUser(ctx context.Context, serverAddr string, login, password string) (string, error) {
 	client := newUserClient(serverAddr)
 	resp, err := client.Login(ctx, &pb.LoginRequest{
-		Email:    login,
+		Login:    login,
 		Password: password,
 	})
 
