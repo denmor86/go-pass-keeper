@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users
 (
     id         UUID                 DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    email      TEXT        NOT NULL UNIQUE,
+    login      TEXT        NOT NULL UNIQUE,
     password   TEXT        NOT NULL,
     PRIMARY KEY (id)
 );

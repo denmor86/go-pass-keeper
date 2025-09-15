@@ -12,17 +12,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func RegisterUser(ctx context.Context, serverAddr string, email string, password string) (string, error) {
+func RegisterUser(ctx context.Context, serverAddr string, login string, password string) (string, error) {
 
 	client := newUserClient(serverAddr)
 	resp, err := client.Register(ctx, &pb.RegisterRequest{
-		Email:    email,
+		Email:    login,
 		Password: password,
 	})
 
 	switch status.Code(err) {
 	case codes.OK:
-		logger.Info("User registered", email)
+		logger.Info("User registered", login)
 	case codes.InvalidArgument:
 		logger.Warn("invalid user", err.Error())
 		return "", fmt.Errorf("invalid user")
@@ -33,16 +33,17 @@ func RegisterUser(ctx context.Context, serverAddr string, email string, password
 	return resp.GetToken(), nil
 }
 
-func LoginUser(ctx context.Context, serverAddr string, email, password string) (string, error) {
+// LoginUser - метод клиента для авторизации пользователя
+func LoginUser(ctx context.Context, serverAddr string, login, password string) (string, error) {
 	client := newUserClient(serverAddr)
 	resp, err := client.Login(ctx, &pb.LoginRequest{
-		Email:    email,
+		Email:    login,
 		Password: password,
 	})
 
 	switch status.Code(err) {
 	case codes.OK:
-		logger.Info("User is authorized", email)
+		logger.Info("User is authorized", login)
 	case codes.Unauthenticated:
 		logger.Warn("User unauthenticated", err.Error())
 		return "", fmt.Errorf("user unauthenticated")
