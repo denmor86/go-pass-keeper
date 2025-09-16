@@ -11,4 +11,11 @@ type User struct {
 	Password string
 }
 
+// Secret - модель секрета
+type Secret struct {
+	ID      uuid.UUID
+	UserID  uuid.UUID
+	Name    string
+	Type    string
+	Content []byte
 }

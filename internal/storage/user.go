@@ -53,7 +53,7 @@ func (s *UserStorage) Get(ctx context.Context, login string, password string) (*
 	err := s.db.Pool.QueryRow(ctx, query, login, password).Scan(&user.ID, &user.Login)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}

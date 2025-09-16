@@ -156,12 +156,12 @@ func TestLoginUser(t *testing.T) {
 			UserID:        uid,
 		},
 		{
-			TestName: "AuthenticateUser UserNotFound #2",
+			TestName: "AuthenticateUser NotFound #2",
 			SetupMocks: func() {
-				mockUsers.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, storage.ErrUserNotFound)
+				mockUsers.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, storage.ErrNotFound)
 			},
 			User:          &pb.LoginRequest{Login: "mda", Password: "test_pass"},
-			ExpectedError: errors.New("rpc error: code = Unauthenticated desc = user not found"),
+			ExpectedError: errors.New("rpc error: code = Unauthenticated desc = not found"),
 		},
 		{
 			TestName: "AuthenticateUser InvalidPassword #3",

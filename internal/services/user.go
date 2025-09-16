@@ -57,7 +57,7 @@ func (s User) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginRes
 	u, err := s.users.Get(ctx, request.GetLogin(), request.GetPassword())
 	switch err {
 	case nil:
-	case storage.ErrUserNotFound:
+	case storage.ErrNotFound:
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	default:
 		return nil, status.Error(codes.Internal, err.Error())

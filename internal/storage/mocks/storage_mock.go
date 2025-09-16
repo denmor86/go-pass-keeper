@@ -71,3 +71,86 @@ func (mr *MockUserMockRecorder) Get(ctx, login, password any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockUser)(nil).Get), ctx, login, password)
 }
+
+// MockSecret is a mock of Secret interface.
+type MockSecret struct {
+	ctrl     *gomock.Controller
+	recorder *MockSecretMockRecorder
+	isgomock struct{}
+}
+
+// MockSecretMockRecorder is the mock recorder for MockSecret.
+type MockSecretMockRecorder struct {
+	mock *MockSecret
+}
+
+// NewMockSecret creates a new mock instance.
+func NewMockSecret(ctrl *gomock.Controller) *MockSecret {
+	mock := &MockSecret{ctrl: ctrl}
+	mock.recorder = &MockSecretMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSecret) EXPECT() *MockSecretMockRecorder {
+	return m.recorder
+}
+
+// Add mocks base method.
+func (m_2 *MockSecret) Add(ctx context.Context, uid uuid.UUID, m *models.Secret) (*models.Secret, error) {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "Add", ctx, uid, m)
+	ret0, _ := ret[0].(*models.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Add indicates an expected call of Add.
+func (mr *MockSecretMockRecorder) Add(ctx, uid, m any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockSecret)(nil).Add), ctx, uid, m)
+}
+
+// Delete mocks base method.
+func (m *MockSecret) Delete(ctx context.Context, uid uuid.UUID, name string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", ctx, uid, name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockSecretMockRecorder) Delete(ctx, uid, name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockSecret)(nil).Delete), ctx, uid, name)
+}
+
+// Get mocks base method.
+func (m *MockSecret) Get(ctx context.Context, uid uuid.UUID, name string) (*models.Secret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, uid, name)
+	ret0, _ := ret[0].(*models.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockSecretMockRecorder) Get(ctx, uid, name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSecret)(nil).Get), ctx, uid, name)
+}
+
+// List mocks base method.
+func (m *MockSecret) List(ctx context.Context, uid uuid.UUID) ([]*models.Secret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "List", ctx, uid)
+	ret0, _ := ret[0].([]*models.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// List indicates an expected call of List.
+func (mr *MockSecretMockRecorder) List(ctx, uid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockSecret)(nil).List), ctx, uid)
+}
