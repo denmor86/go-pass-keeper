@@ -55,7 +55,7 @@ func (a *App) Run() {
 	// сервис пользователей
 	us := services.NewUser(users, th)
 
-	s := grpcserver.NewServer(
+	a.server = grpcserver.NewServer(
 		// адрес
 		grpcserver.UseListenAddr(a.config.ListenAddr),
 		// перехватчики обычные запросов
@@ -66,7 +66,7 @@ func (a *App) Run() {
 		grpcserver.UseServices(us),
 	)
 
-	if err := s.Start(); err != nil {
+	if err := a.server.Start(); err != nil {
 		logger.Error("Error start server", err.Error())
 	}
 
