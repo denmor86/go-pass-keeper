@@ -30,13 +30,13 @@ func (s *UserStorage) Add(ctx context.Context, user *models.User) (uuid.UUID, er
 		RETURNING id
 `
 	var uid uuid.UUID
-	err := s.db.Pool.QueryRow(ctx, query, user.Email, user.Password).Scan(&uid)
+	err := s.db.Pool.QueryRow(ctx, query, user.Login, user.Password).Scan(&uid)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(string(pgErr.Code)) {
-			return uid, ErrAlreadyExists
+			return uuid.Nil, ErrAlreadyExists
 		}
-		return uid, fmt.Errorf("failed to add user: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to add user: %w", err)
 	}
 
 	return uid, nil
@@ -50,7 +50,7 @@ func (s *UserStorage) Get(ctx context.Context, login string, password string) (*
 `
 	user := &models.User{}
 
-	err := s.db.Pool.QueryRow(ctx, query, login, password).Scan(&user.ID, &user.Email)
+	err := s.db.Pool.QueryRow(ctx, query, login, password).Scan(&user.ID, &user.Login)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound

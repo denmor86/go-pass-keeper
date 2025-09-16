@@ -35,7 +35,7 @@ func NewUser(u storage.User, th TokenBuilder) *User {
 
 // Register - метод обработки запроса регистрации пользователя
 func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	uid, err := s.users.Add(ctx, &models.User{Email: request.GetLogin(), Password: request.GetPassword()})
+	uid, err := s.users.Add(ctx, &models.User{Login: request.GetLogin(), Password: request.GetPassword()})
 	switch err {
 	case nil:
 	case storage.ErrAlreadyExists:
@@ -55,11 +55,6 @@ func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 // Login - метод обработки запроса автооризации пользователя
 func (s User) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
 	u, err := s.users.Get(ctx, request.GetLogin(), request.GetPassword())
-	if err != nil {
-		return nil, err
-	}
-
-	t, err := s.token.BuildJWT(u.ID.String())
 	switch err {
 	case nil:
 	case storage.ErrUserNotFound:
@@ -67,7 +62,10 @@ func (s User) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginRes
 	default:
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-
+	t, err := s.token.BuildJWT(u.ID.String())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 	return &pb.LoginResponse{Token: t}, nil
 }
 

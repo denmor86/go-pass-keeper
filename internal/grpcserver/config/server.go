@@ -38,3 +38,11 @@ func NewConfig() *Config {
 		JWTSecret:   *secret,
 	}
 }
+func DefaultConfig() *Config {
+	return &Config{
+		ListenAddr:  "localhost:8080",
+		LogLevel:    "info",
+		DatabaseDSN: "",
+		JWTSecret:   "secret",
+	}
+}

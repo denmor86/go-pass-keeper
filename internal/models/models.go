@@ -7,6 +7,6 @@ import (
 // User - модель пользователя
 type User struct {
 	ID       uuid.UUID `json:"id"`
-	Email    string    `json:"login"`
+	Login    string    `json:"login"`
 	Password string    `json:"-"`
 }
