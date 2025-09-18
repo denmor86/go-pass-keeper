@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// TokenBuilder интефрейс для работы с токеном
-type TokenBuilder interface {
+// tokenBuilder интефрейс для работы с токеном
+type tokenBuilder interface {
 	// BuildJWT - создание токена с ID пользователя
 	BuildJWT(userID string) (string, error)
 }
@@ -22,11 +22,11 @@ type User struct {
 	pb.UnimplementedUserServer
 
 	users storage.User
-	token TokenBuilder
+	token tokenBuilder
 }
 
 // NewUser - метод создания сервиса работы с пользователями
-func NewUser(u storage.User, th TokenBuilder) *User {
+func NewUser(u storage.User, th tokenBuilder) *User {
 	return &User{
 		users: u,
 		token: th,
