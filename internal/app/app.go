@@ -51,10 +51,14 @@ func (a *App) Run() {
 	if err != nil {
 		logger.Error("Error initialize database", err.Error())
 	}
+	// хранилище пользователей
 	users := storage.NewUserStorage(db)
+	// хранилище секретов
+	secrets := storage.NewSecretStorage(db)
 	// сервис пользователей
 	us := services.NewUser(users, th)
-
+	// сервис секретов
+	ks := services.NewKeeper(secrets)
 	a.server = grpcserver.NewServer(
 		// адрес
 		grpcserver.UseListenAddr(a.config.ListenAddr),
@@ -63,7 +67,7 @@ func (a *App) Run() {
 		// перехватчики потоковых запросов
 		grpcserver.UseStreamInterceptors(interceptors.CreateStreamInterceptors(th)...),
 		// используемые сервисы
-		grpcserver.UseServices(us),
+		grpcserver.UseServices(us, ks),
 	)
 
 	if err := a.server.Start(); err != nil {

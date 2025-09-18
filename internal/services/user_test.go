@@ -70,7 +70,7 @@ func TestRegisterUser(t *testing.T) {
 		{
 			TestName: "Success. Register user #1",
 			SetupMocks: func() {
-				mockUsers.EXPECT().Add(gomock.Any(), gomock.Any()).Return(uuid.Must(uuid.Parse(uid)), nil)
+				mockUsers.EXPECT().Add(gomock.Any(), gomock.Any()).Return(uuid.MustParse(uid), nil)
 			},
 			ExpectedError: nil,
 			User:          &pb.RegisterRequest{Login: "mda", Password: "test_pass"},
@@ -149,7 +149,7 @@ func TestLoginUser(t *testing.T) {
 		{
 			TestName: "AuthenticateUser Success #1",
 			SetupMocks: func() {
-				mockUsers.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.User{ID: uuid.Must(uuid.Parse(uid)), Login: "mda"}, nil)
+				mockUsers.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.User{ID: uuid.MustParse(uid), Login: "mda"}, nil)
 			},
 			User:          &pb.LoginRequest{Login: "mda", Password: "test_pass"},
 			ExpectedError: nil,

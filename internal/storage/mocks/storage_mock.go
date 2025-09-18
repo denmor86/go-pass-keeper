@@ -97,10 +97,10 @@ func (m *MockSecret) EXPECT() *MockSecretMockRecorder {
 }
 
 // Add mocks base method.
-func (m_2 *MockSecret) Add(ctx context.Context, uid uuid.UUID, m *models.Secret) (*models.Secret, error) {
+func (m_2 *MockSecret) Add(ctx context.Context, uid uuid.UUID, m *models.Secret) (uuid.UUID, error) {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "Add", ctx, uid, m)
-	ret0, _ := ret[0].(*models.Secret)
+	ret0, _ := ret[0].(uuid.UUID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
