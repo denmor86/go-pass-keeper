@@ -545,7 +545,7 @@ const file_api_keeper_proto_rawDesc = "" +
 	"GetSecrets\x12\x16.api.GetSecretsRequest\x1a\x17.api.GetSecretsResponse\x12:\n" +
 	"\tAddSecret\x12\x15.api.AddSecretRequest\x1a\x16.api.AddSecretResponse\x12:\n" +
 	"\tGetSecret\x12\x15.api.GetSecretRequest\x1a\x16.api.GetSecretResponse\x12C\n" +
-	"\fDeleteSecret\x12\x18.api.DeleteSecretRequest\x1a\x19.api.DeleteSecretResponseB\vZ\tapi/protob\x06proto3"
+	"\fDeleteSecret\x12\x18.api.DeleteSecretRequest\x1a\x19.api.DeleteSecretResponseB\vZ\tpkg/protob\x06proto3"
 
 var (
 	file_api_keeper_proto_rawDescOnce sync.Once

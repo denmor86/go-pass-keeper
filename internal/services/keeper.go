@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"errors"
-	pb "go-pass-keeper/api/proto"
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/storage"
 	"go-pass-keeper/internal/usercontext"
+	pb "go-pass-keeper/pkg/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

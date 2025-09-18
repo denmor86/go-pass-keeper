@@ -3,8 +3,8 @@ package grpcclient
 import (
 	"context"
 	"fmt"
-	pb "go-pass-keeper/api/proto"
 	"go-pass-keeper/internal/logger"
+	pb "go-pass-keeper/pkg/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -230,7 +230,7 @@ const file_api_user_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token2o\n" +
 	"\x04User\x127\n" +
 	"\bRegister\x12\x14.api.RegisterRequest\x1a\x15.api.RegisterResponse\x12.\n" +
-	"\x05Login\x12\x11.api.LoginRequest\x1a\x12.api.LoginResponseB\vZ\tapi/protob\x06proto3"
+	"\x05Login\x12\x11.api.LoginRequest\x1a\x12.api.LoginResponseB\vZ\tpkg/protob\x06proto3"
 
 var (
 	file_api_user_proto_rawDescOnce sync.Once

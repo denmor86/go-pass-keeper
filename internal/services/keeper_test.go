@@ -3,13 +3,13 @@ package services
 import (
 	"context"
 	"errors"
-	pb "go-pass-keeper/api/proto"
 	"go-pass-keeper/internal/grpcserver/config"
 	"go-pass-keeper/internal/logger"
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/storage"
 	"go-pass-keeper/internal/storage/mocks"
 	"go-pass-keeper/internal/usercontext"
+	pb "go-pass-keeper/pkg/proto"
 	"testing"
 
 	"github.com/google/uuid"

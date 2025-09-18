@@ -2,9 +2,9 @@ package services
 
 import (
 	"context"
-	pb "go-pass-keeper/api/proto"
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/storage"
+	pb "go-pass-keeper/pkg/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
