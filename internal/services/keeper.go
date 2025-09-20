@@ -5,8 +5,8 @@ import (
 	"errors"
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/storage"
-	"go-pass-keeper/internal/usercontext"
 	pb "go-pass-keeper/pkg/proto"
+	"go-pass-keeper/pkg/usercontext"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
