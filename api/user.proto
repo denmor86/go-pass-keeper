@@ -16,6 +16,7 @@ message RegisterRequest {
 
 message RegisterResponse {
   string token = 1;
+  string salt = 2;
 }
 
 message LoginRequest {
@@ -25,4 +26,5 @@ message LoginRequest {
 
 message LoginResponse {
   string token = 1;
+  string salt = 2;
 }

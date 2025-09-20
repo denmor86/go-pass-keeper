@@ -25,12 +25,12 @@ func NewUserStorage(db *Database) *UserStorage {
 // Add - метод добавляет пользователя в хранилище
 func (s *UserStorage) Add(ctx context.Context, user *models.User) (uuid.UUID, error) {
 	const query = `
-		INSERT INTO users (login, password)
-		VALUES ($1, crypt($2, gen_salt('bf')))
+		INSERT INTO users (login, password, salt)
+		VALUES ($1, crypt($2, gen_salt('bf')), $3)
 		RETURNING id
 `
 	var uid uuid.UUID
-	err := s.db.Pool.QueryRow(ctx, query, user.Login, user.Password).Scan(&uid)
+	err := s.db.Pool.QueryRow(ctx, query, user.Login, user.Password, user.Salt).Scan(&uid)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(string(pgErr.Code)) {
@@ -45,12 +45,12 @@ func (s *UserStorage) Add(ctx context.Context, user *models.User) (uuid.UUID, er
 // Get - метод извлекает пользователя из хранилища с использованием логина и пароля
 func (s *UserStorage) Get(ctx context.Context, login string, password string) (*models.User, error) {
 	const query = `
-		SELECT id, login FROM users
+		SELECT id, login, salt FROM users
 		WHERE login = $1 AND password = crypt($2, password);
 `
 	user := &models.User{}
 
-	err := s.db.Pool.QueryRow(ctx, query, login, password).Scan(&user.ID, &user.Login)
+	err := s.db.Pool.QueryRow(ctx, query, login, password).Scan(&user.ID, &user.Login, &user.Salt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound

@@ -9,6 +9,7 @@ type User struct {
 	ID       uuid.UUID
 	Login    string
 	Password string
+	Salt     string
 }
 
 // Secret - модель секрета

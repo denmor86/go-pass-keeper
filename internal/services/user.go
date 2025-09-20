@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/storage"
+	"go-pass-keeper/pkg/crypto"
 	pb "go-pass-keeper/pkg/proto"
 
 	"google.golang.org/grpc"
@@ -35,7 +36,12 @@ func NewUser(u storage.User, th tokenBuilder) *User {
 
 // Register - метод обработки запроса регистрации пользователя
 func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	uid, err := s.users.Add(ctx, &models.User{Login: request.GetLogin(), Password: request.GetPassword()})
+
+	salt, err := crypto.GenerateSalt()
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	uid, err := s.users.Add(ctx, &models.User{Login: request.GetLogin(), Password: request.GetPassword(), Salt: salt})
 	switch err {
 	case nil:
 	case storage.ErrAlreadyExists:
@@ -43,13 +49,12 @@ func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 	default:
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-
 	t, err := s.token.BuildJWT(uid.String())
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.RegisterResponse{Token: t}, nil
+	return &pb.RegisterResponse{Token: t, Salt: salt}, nil
 }
 
 // Login - метод обработки запроса автооризации пользователя
@@ -66,7 +71,7 @@ func (s User) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginRes
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.LoginResponse{Token: t}, nil
+	return &pb.LoginResponse{Token: t, Salt: u.Salt}, nil
 }
 
 // RegisterService - метод регистрации сервиса
