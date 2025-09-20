@@ -2,7 +2,7 @@ package grpcserver
 
 import (
 	"fmt"
-	"go-pass-keeper/internal/logger"
+	"go-pass-keeper/pkg/logger"
 	"net"
 
 	"google.golang.org/grpc"

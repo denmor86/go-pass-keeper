@@ -3,8 +3,8 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"go-pass-keeper/internal/logger"
 	"go-pass-keeper/internal/usercontext"
+	"go-pass-keeper/pkg/logger"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

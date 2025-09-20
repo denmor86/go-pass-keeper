@@ -2,8 +2,8 @@ package main
 
 import (
 	"go-pass-keeper/internal/grpcclient/config"
-	"go-pass-keeper/internal/logger"
 	"go-pass-keeper/internal/tui/models"
+	"go-pass-keeper/pkg/logger"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

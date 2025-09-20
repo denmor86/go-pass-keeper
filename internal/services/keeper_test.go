@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"go-pass-keeper/internal/grpcserver/config"
-	"go-pass-keeper/internal/logger"
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/storage"
 	"go-pass-keeper/internal/storage/mocks"
 	"go-pass-keeper/internal/usercontext"
+	"go-pass-keeper/pkg/logger"
 	pb "go-pass-keeper/pkg/proto"
 	"testing"
 
