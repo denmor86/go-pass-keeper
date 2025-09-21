@@ -11,12 +11,8 @@ const (
 	headerAuthorize = "authorization"
 )
 
-type TokenStorage interface {
-	GetToken(ctx context.Context) (string, error)
-}
-
 func AuthInterceptor(
-	storage TokenStorage,
+	token string,
 ) grpc.UnaryClientInterceptor {
 	return func(
 		ctx context.Context,
@@ -26,8 +22,7 @@ func AuthInterceptor(
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,
 	) error {
-		token, err := storage.GetToken(ctx)
-		if err != nil || len(token) == 0 {
+		if len(token) == 0 {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
 
@@ -39,7 +34,7 @@ func AuthInterceptor(
 }
 
 func AuthStreamInterceptor(
-	storage TokenStorage,
+	token string,
 ) grpc.StreamClientInterceptor {
 	return func(
 		ctx context.Context,
@@ -49,8 +44,7 @@ func AuthStreamInterceptor(
 		streamer grpc.Streamer,
 		opts ...grpc.CallOption,
 	) (grpc.ClientStream, error) {
-		token, err := storage.GetToken(ctx)
-		if err != nil || len(token) == 0 {
+		if len(token) == 0 {
 			return streamer(ctx, desc, cc, method, opts...)
 		}
 

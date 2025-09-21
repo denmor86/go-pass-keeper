@@ -1,10 +1,13 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"go-pass-keeper/internal/grpcclient"
+	"go-pass-keeper/internal/grpcclient/settings"
+	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
-	"strconv"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -12,51 +15,49 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type SecretsState int
+type ViewerState int
 
 const (
-	SecretsListState SecretsState = iota
+	ViewerListState ViewerState = iota
 	SecretViewState
 	SecretAddState
 )
 
-type Secret struct {
-	ID      int
-	Name    string
-	Type    string
-	Created string
-	Updated string
-	Value   string
-	Login   string
-}
+// Кнопки на главном окне
+const (
+	AddButton = iota
+	ViewButton
+	DeleteButton
+	UpdateButton
+)
 
-type SecretsModel struct {
-	state          SecretsState
+type ViewerModel struct {
+	state          ViewerState
 	table          table.Model
-	secrets        []Secret
+	secrets        []*models.SecretInfo
 	windowSize     tea.WindowSizeMsg
 	focusedBtn     int
-	selectedSecret *Secret
 	addModel       SecretAddModel
+	selectedSecret *models.SecretInfo
+	connection     *settings.Connection
+	token          string
 }
 
-func NewSecretsModel() SecretsModel {
-	secrets := getInitialSecrets()
-
-	return SecretsModel{
-		state:      SecretsListState,
-		table:      createTable(secrets),
-		secrets:    secrets,
+func NewViewerModel(connection *settings.Connection) ViewerModel {
+	return ViewerModel{
+		state:      ViewerListState,
+		table:      createTable(),
 		focusedBtn: 0,
 		addModel:   NewSecretAddModel(),
+		connection: connection,
 	}
 }
 
-func (m SecretsModel) Init() tea.Cmd {
-	return nil
+func (m ViewerModel) Init() tea.Cmd {
+	return m.attemptGetSecrets()
 }
 
-func (m SecretsModel) Update(msg tea.Msg) (SecretsModel, tea.Cmd) {
+func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		return m.updateWindowsSize(msg)
@@ -68,14 +69,21 @@ func (m SecretsModel) Update(msg tea.Msg) (SecretsModel, tea.Cmd) {
 		case tea.KeyEsc:
 			// Обработка ESC в зависимости от текущего состояния
 			switch m.state {
-			case SecretsListState:
+			case ViewerListState:
 				// Возврат на главный экран
-				return m, nil
+				return m, func() tea.Msg { return messages.GotoMainPageMsg{} }
 			case SecretViewState, SecretAddState:
-				m.state = SecretsListState
+				m.state = ViewerListState
 				return m, nil
 			}
 		}
+	case messages.AuthSuccessMsg:
+		m.token = msg.Token
+		return m, nil
+
+	case messages.SecretRefreshMsg:
+		m.secrets = msg.Secrets
+		m.refreshViewer()
 	}
 	switch m.state {
 	case SecretAddState:
@@ -88,7 +96,7 @@ func (m SecretsModel) Update(msg tea.Msg) (SecretsModel, tea.Cmd) {
 }
 
 // updateWindowsSize - метод обновления размеров окон
-func (m SecretsModel) updateWindowsSize(msg tea.WindowSizeMsg) (SecretsModel, tea.Cmd) {
+func (m ViewerModel) updateWindowsSize(msg tea.WindowSizeMsg) (ViewerModel, tea.Cmd) {
 	m.windowSize = msg
 
 	// Передаем размеры окна всем дочерним моделям
@@ -98,14 +106,14 @@ func (m SecretsModel) updateWindowsSize(msg tea.WindowSizeMsg) (SecretsModel, te
 	return m, tea.Batch(addModelCmd)
 }
 
-func (m SecretsModel) handleListState(msg tea.Msg) (SecretsModel, tea.Cmd) {
+func (m ViewerModel) handleListState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "r", "R": // Обновление
-			return m.refreshSecrets(), nil
+			return m.refreshViewer(), nil
 
 		case "left", "h": // Навигация кнопок
 			if m.focusedBtn > 0 {
@@ -128,14 +136,14 @@ func (m SecretsModel) handleListState(msg tea.Msg) (SecretsModel, tea.Cmd) {
 	}
 
 	// Обновление таблицы только если мы в состоянии списка
-	if m.state == SecretsListState {
+	if m.state == ViewerListState {
 		m.table, cmd = m.table.Update(msg)
 	}
 
 	return m, cmd
 }
 
-func (m SecretsModel) handleAddState(msg tea.Msg) (SecretsModel, tea.Cmd) {
+func (m ViewerModel) handleAddState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	// Передаем сообщение в модель добавления
 	updatedModel, cmd := m.addModel.Update(msg)
 	m.addModel = updatedModel
@@ -150,89 +158,64 @@ func (m SecretsModel) handleAddState(msg tea.Msg) (SecretsModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m SecretsModel) handleViewState(msg tea.Msg) (SecretsModel, tea.Cmd) {
+func (m ViewerModel) handleViewState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	// ESC в окне просмотра - возврат к списку секретов
 	if keyMsg, ok := msg.(tea.KeyMsg); ok && keyMsg.String() == "esc" {
-		m.state = SecretsListState
-		m.selectedSecret = nil
+		m.state = ViewerListState
 	}
 	return m, nil
 }
 
-func (m SecretsModel) handleAddComplete(msg messages.SecretAddCompleteMsg) SecretsModel {
-	newSecret := Secret{
-		ID:      getNextID(m.secrets),
-		Name:    msg.Name,
-		Type:    msg.Type,
-		Login:   msg.Login,
-		Value:   msg.Password,
-		Created: time.Now().Format("2006-01-02"),
-		Updated: time.Now().Format("2006-01-02"),
-	}
-
-	if msg.Content != "" {
-		newSecret.Value = msg.Content
-	}
-	if msg.FileName != "" {
-		newSecret.Value = "Файл: " + msg.FileName
-		if msg.Content != "" && msg.Content != "Файл не найден или недоступен" {
-			newSecret.Value = msg.Content
-		}
-	}
-
-	m.secrets = append(m.secrets, newSecret)
-	m.table.SetRows(createTableRows(m.secrets))
-	m.state = SecretsListState
-
+func (m ViewerModel) handleAddComplete(msg messages.SecretAddCompleteMsg) ViewerModel {
+	m = m.refreshViewer()
+	m.state = ViewerListState
 	return m
 }
 
-func (m SecretsModel) handleEnterAction() (SecretsModel, tea.Cmd) {
-	// Если выбрана кнопка "Просмотр" И есть выбранная строка
-	if m.focusedBtn == 1 && m.table.SelectedRow() != nil {
-		selectedID, _ := strconv.Atoi(m.table.SelectedRow()[0])
-		for i := range m.secrets {
-			if m.secrets[i].ID == selectedID {
-				m.selectedSecret = &m.secrets[i]
-				m.state = SecretViewState
-				return m, nil
-			}
-		}
-	}
-
+func (m ViewerModel) handleEnterAction() (ViewerModel, tea.Cmd) {
 	// Если выбрана кнопка "Добавить"
-	if m.focusedBtn == 0 {
+	if m.focusedBtn == AddButton {
 		m.state = SecretAddState
 		return m, m.addModel.Init()
 	}
-
-	// Если выбрана кнопка "Удалить" и есть выбранная строка
-	if m.focusedBtn == 2 && m.table.SelectedRow() != nil {
-		selectedID, _ := strconv.Atoi(m.table.SelectedRow()[0])
-		m.secrets = deleteSecret(m.secrets, selectedID)
-		m.table.SetRows(createTableRows(m.secrets))
+	if len(m.table.Rows()) == 0 {
+		return m, nil
+	}
+	selectedID := m.table.SelectedRow()[0]
+	for i := range m.secrets {
+		if m.secrets[i].ID == selectedID {
+			m.selectedSecret = m.secrets[i]
+			m.state = SecretViewState
+			return m, nil
+		}
+	}
+	// Если выбрана кнопка "Просмотр" И есть выбранная строка
+	if m.focusedBtn == ViewButton && m.table.SelectedRow() != nil {
 		return m, nil
 	}
 
+	// Если выбрана кнопка "Удалить" и есть выбранная строка
+	if m.focusedBtn == DeleteButton && m.table.SelectedRow() != nil {
+		return m, m.attemptDeleteSecret(selectedID)
+	}
+
 	// Если выбрана кнопка "Обновить"
-	if m.focusedBtn == 3 {
-		m = m.refreshSecrets()
-		return m, nil
+	if m.focusedBtn == UpdateButton {
+		return m, m.attemptGetSecrets()
 	}
 
 	return m, nil
 }
 
-func (m SecretsModel) refreshSecrets() SecretsModel {
-	m.secrets = getInitialSecrets()
+func (m ViewerModel) refreshViewer() ViewerModel {
 	m.table.SetRows(createTableRows(m.secrets))
 	return m
 }
 
-func (m SecretsModel) View() string {
+func (m ViewerModel) View() string {
 	switch m.state {
-	case SecretsListState:
-		return m.renderSecretsListView()
+	case ViewerListState:
+		return m.renderViewerListView()
 	case SecretViewState:
 		return m.renderSecretView()
 	case SecretAddState:
@@ -242,40 +225,7 @@ func (m SecretsModel) View() string {
 	}
 }
 
-// Вспомогательные функции
-func getInitialSecrets() []Secret {
-	return []Secret{
-		{
-			ID:      1,
-			Name:    "Пароль от почты",
-			Type:    "Логин/Пароль",
-			Created: time.Now().Format("2006-01-02"),
-			Updated: time.Now().Format("2006-01-02"),
-			Value:   "mysecretpassword123",
-			Login:   "user@example.com",
-		},
-		{
-			ID:      2,
-			Name:    "API ключ",
-			Type:    "Текст",
-			Created: time.Now().AddDate(0, 0, -5).Format("2006-01-02"),
-			Updated: time.Now().AddDate(0, 0, -2).Format("2006-01-02"),
-			Value:   "ak_1234567890abcdef",
-			Login:   "",
-		},
-		{
-			ID:      3,
-			Name:    "config.txt",
-			Type:    "Файл",
-			Created: time.Now().AddDate(0, 0, -10).Format("2006-01-02"),
-			Updated: time.Now().AddDate(0, 0, -7).Format("2006-01-02"),
-			Value:   "секретные настройки",
-			Login:   "",
-		},
-	}
-}
-
-func createTable(secrets []Secret) table.Model {
+func createTable() table.Model {
 	columns := []table.Column{
 		{Title: "ID", Width: 4},
 		{Title: "Название", Width: 20},
@@ -286,7 +236,6 @@ func createTable(secrets []Secret) table.Model {
 
 	t := table.New(
 		table.WithColumns(columns),
-		table.WithRows(createTableRows(secrets)),
 		table.WithFocused(true),
 		table.WithHeight(10),
 	)
@@ -306,41 +255,22 @@ func createTable(secrets []Secret) table.Model {
 	return t
 }
 
-func createTableRows(secrets []Secret) []table.Row {
+func createTableRows(secrets []*models.SecretInfo) []table.Row {
 	rows := make([]table.Row, len(secrets))
 	for i, secret := range secrets {
 		rows[i] = table.Row{
-			strconv.Itoa(secret.ID),
+			secret.ID,
 			secret.Name,
 			secret.Type,
-			secret.Created,
-			secret.Updated,
+			secret.Created.Local().Format(time.UnixDate),
+			secret.Updated.Local().Format(time.UnixDate),
 		}
 	}
 	return rows
 }
 
-func deleteSecret(secrets []Secret, id int) []Secret {
-	for i, secret := range secrets {
-		if secret.ID == id {
-			return append(secrets[:i], secrets[i+1:]...)
-		}
-	}
-	return secrets
-}
-
-func getNextID(secrets []Secret) int {
-	maxID := 0
-	for _, secret := range secrets {
-		if secret.ID > maxID {
-			maxID = secret.ID
-		}
-	}
-	return maxID + 1
-}
-
 // Методы отображения
-func (m SecretsModel) renderSecretsListView() string {
+func (m ViewerModel) renderViewerListView() string {
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		styles.TitleStyle.
@@ -376,12 +306,12 @@ func (m SecretsModel) renderSecretsListView() string {
 		)
 }
 
-func (m SecretsModel) renderButtons() string {
+func (m ViewerModel) renderButtons() string {
 	buttons := []string{
-		m.renderButton("➕ Добавить", 0),
-		m.renderButton("👁️ Просмотр", 1),
-		m.renderButton("🗑️ Удалить", 2),
-		m.renderButton("🔄 Обновить", 3),
+		m.renderButton("➕ Добавить", AddButton),
+		m.renderButton("👁️ Просмотр", ViewButton),
+		m.renderButton("🗑️ Удалить", DeleteButton),
+		m.renderButton("🔄 Обновить", UpdateButton),
 	}
 
 	return lipgloss.JoinHorizontal(
@@ -390,7 +320,7 @@ func (m SecretsModel) renderButtons() string {
 	)
 }
 
-func (m SecretsModel) renderButton(text string, index int) string {
+func (m ViewerModel) renderButton(text string, index int) string {
 	if index == m.focusedBtn {
 		return styles.ActiveButtonStyle.
 			Width(15).
@@ -403,7 +333,7 @@ func (m SecretsModel) renderButton(text string, index int) string {
 		Render(text)
 }
 
-func (m SecretsModel) renderHelpText() string {
+func (m ViewerModel) renderHelpText() string {
 	helpText := "↑/↓: выбор секрета • ←/→: выбор кнопки • Enter: действие • R: обновить • ESC: выход"
 
 	if m.table.SelectedRow() != nil {
@@ -416,7 +346,7 @@ func (m SecretsModel) renderHelpText() string {
 		Render(helpText)
 }
 
-func (m SecretsModel) renderSecretView() string {
+func (m ViewerModel) renderSecretView() string {
 	if m.selectedSecret == nil {
 		return "Ошибка: секрет не выбран"
 	}
@@ -432,13 +362,11 @@ func (m SecretsModel) renderSecretView() string {
 
 		lipgloss.JoinVertical(
 			lipgloss.Left,
-			m.renderSecretField("ID:", fmt.Sprintf("%d", secret.ID)),
+			m.renderSecretField("ID:", secret.ID),
 			m.renderSecretField("Название:", secret.Name),
 			m.renderSecretField("Тип:", secret.Type),
-			m.renderSecretField("Создан:", secret.Created),
-			m.renderSecretField("Обновлен:", secret.Updated),
-			m.renderSecretField("Логин:", secret.Login),
-			m.renderSecretField("Значение:", secret.Value),
+			m.renderSecretField("Создан:", secret.Created.Local().Format(time.UnixDate)),
+			m.renderSecretField("Обновлен:", secret.Updated.Local().Format(time.UnixDate)),
 		),
 
 		lipgloss.NewStyle().Height(2).Render(""),
@@ -462,7 +390,7 @@ func (m SecretsModel) renderSecretView() string {
 		)
 }
 
-func (m SecretsModel) renderSecretField(label, value string) string {
+func (m ViewerModel) renderSecretField(label, value string) string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		lipgloss.NewStyle().
@@ -474,4 +402,41 @@ func (m SecretsModel) renderSecretField(label, value string) string {
 			Bold(true).
 			Render(value),
 	) + "\n"
+}
+
+func (m ViewerModel) attemptGetSecrets() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		defer func() {
+			cancel()
+			client.Close()
+		}()
+		if err := client.Connect(ctx); err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+		}
+		secrets, err := client.GetSecrets()
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка получения данных: %s", err.Error()))
+		}
+		return messages.SecretRefreshMsg{Secrets: secrets}
+	}
+}
+func (m ViewerModel) attemptDeleteSecret(sid string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		defer func() {
+			cancel()
+			client.Close()
+		}()
+		if err := client.Connect(ctx); err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+		}
+		id, err := client.DeleteSecret(sid)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка удаления секрета: %s", err.Error()))
+		}
+		return messages.SecretDeleteMsg{Id: id}
+	}
 }

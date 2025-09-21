@@ -144,30 +144,30 @@ func TestGetSecret(t *testing.T) {
 		{
 			TestName: "Success. Get secret #1",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "file", Content: []byte("0x100")}, nil)
+				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "file", Content: []byte("0x100")}, nil)
 			},
 			ExpectedError: nil,
-			Request:       &pb.GetSecretRequest{Name: "Big secret"},
+			Request:       &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
 			Responce:      &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "file"}, Content: []byte("0x100")},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
 			TestName: "Error. Get secret already exists #2",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, storage.ErrNotFound)
+				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, storage.ErrNotFound)
 			},
 			ExpectedError: errors.New("rpc error: code = NotFound desc = not found"),
-			Request:       &pb.GetSecretRequest{Name: "NotFound"},
+			Request:       &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "NotFound"}},
 			Responce:      nil,
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
 			TestName: "Error. Get secret undefined error #3",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to get secret:"))
+				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to get secret:"))
 			},
 			ExpectedError: errors.New("rpc error: code = Internal desc = failed to get secret:"),
-			Request:       &pb.GetSecretRequest{Name: "Big secret"},
+			Request:       &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
 			Responce:      nil,
 			UserId:        uuid.MustParse(user_uuid),
 		},
@@ -176,7 +176,7 @@ func TestGetSecret(t *testing.T) {
 			SetupMocks: func() {
 			},
 			ExpectedError: errors.New("rpc error: code = Unauthenticated desc = unknown user"),
-			Request:       &pb.GetSecretRequest{Name: "Big secret"},
+			Request:       &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
 			Responce:      nil,
 			UserId:        uuid.Nil,
 		},
@@ -229,28 +229,28 @@ func TestDeleteSecret(t *testing.T) {
 		{
 			TestName: "Success. Delete secret #1",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockSecrets.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			ExpectedError: nil,
-			Request:       &pb.DeleteSecretRequest{Name: "Big secret"},
+			Request:       &pb.DeleteSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
 			TestName: "Error. Delete secret already exists #2",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(storage.ErrNotFound)
+				mockSecrets.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(storage.ErrNotFound)
 			},
 			ExpectedError: errors.New("rpc error: code = NotFound desc = not found"),
-			Request:       &pb.DeleteSecretRequest{Name: "NotFound"},
+			Request:       &pb.DeleteSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "NotFound"}},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
 			TestName: "Error. Delete secret undefined error #3",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed to delete secret:"))
+				mockSecrets.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(errors.New("failed to delete secret:"))
 			},
 			ExpectedError: errors.New("rpc error: code = Internal desc = failed to delete secret:"),
-			Request:       &pb.DeleteSecretRequest{Name: "Big secret"},
+			Request:       &pb.DeleteSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
@@ -258,7 +258,7 @@ func TestDeleteSecret(t *testing.T) {
 			SetupMocks: func() {
 			},
 			ExpectedError: errors.New("rpc error: code = Unauthenticated desc = unknown user"),
-			Request:       &pb.DeleteSecretRequest{Name: "Big secret"},
+			Request:       &pb.DeleteSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
 			UserId:        uuid.Nil,
 		},
 	}

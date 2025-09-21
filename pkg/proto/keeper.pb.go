@@ -276,7 +276,7 @@ func (x *AddSecretResponse) GetMeta() *SecretMetadata {
 
 type GetSecretRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Meta          *SecretMetadata        `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -311,11 +311,11 @@ func (*GetSecretRequest) Descriptor() ([]byte, []int) {
 	return file_api_keeper_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetSecretRequest) GetName() string {
+func (x *GetSecretRequest) GetMeta() *SecretMetadata {
 	if x != nil {
-		return x.Name
+		return x.Meta
 	}
-	return ""
+	return nil
 }
 
 type GetSecretResponse struct {
@@ -372,7 +372,7 @@ func (x *GetSecretResponse) GetContent() []byte {
 
 type DeleteSecretRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Meta          *SecretMetadata        `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -407,15 +407,16 @@ func (*DeleteSecretRequest) Descriptor() ([]byte, []int) {
 	return file_api_keeper_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *DeleteSecretRequest) GetName() string {
+func (x *DeleteSecretRequest) GetMeta() *SecretMetadata {
 	if x != nil {
-		return x.Name
+		return x.Meta
 	}
-	return ""
+	return nil
 }
 
 type DeleteSecretResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Meta          *SecretMetadata        `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -450,6 +451,13 @@ func (*DeleteSecretResponse) Descriptor() ([]byte, []int) {
 	return file_api_keeper_proto_rawDescGZIP(), []int{8}
 }
 
+func (x *DeleteSecretResponse) GetMeta() *SecretMetadata {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
 var File_api_keeper_proto protoreflect.FileDescriptor
 
 const file_api_keeper_proto_rawDesc = "" +
@@ -472,15 +480,16 @@ const file_api_keeper_proto_rawDesc = "" +
 	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\"<\n" +
 	"\x11AddSecretResponse\x12'\n" +
-	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\"&\n" +
-	"\x10GetSecretRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"V\n" +
+	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\";\n" +
+	"\x10GetSecretRequest\x12'\n" +
+	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\"V\n" +
 	"\x11GetSecretResponse\x12'\n" +
 	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\fR\acontent\")\n" +
-	"\x13DeleteSecretRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\x16\n" +
-	"\x14DeleteSecretResponse2\x84\x02\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\">\n" +
+	"\x13DeleteSecretRequest\x12'\n" +
+	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\"?\n" +
+	"\x14DeleteSecretResponse\x12'\n" +
+	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta2\x84\x02\n" +
 	"\x06Keeper\x12=\n" +
 	"\n" +
 	"GetSecrets\x12\x16.api.GetSecretsRequest\x1a\x17.api.GetSecretsResponse\x12:\n" +
@@ -519,20 +528,23 @@ var file_api_keeper_proto_depIdxs = []int32{
 	0,  // 2: api.GetSecretsResponse.secrets:type_name -> api.SecretMetadata
 	0,  // 3: api.AddSecretRequest.meta:type_name -> api.SecretMetadata
 	0,  // 4: api.AddSecretResponse.meta:type_name -> api.SecretMetadata
-	0,  // 5: api.GetSecretResponse.meta:type_name -> api.SecretMetadata
-	1,  // 6: api.Keeper.GetSecrets:input_type -> api.GetSecretsRequest
-	3,  // 7: api.Keeper.AddSecret:input_type -> api.AddSecretRequest
-	5,  // 8: api.Keeper.GetSecret:input_type -> api.GetSecretRequest
-	7,  // 9: api.Keeper.DeleteSecret:input_type -> api.DeleteSecretRequest
-	2,  // 10: api.Keeper.GetSecrets:output_type -> api.GetSecretsResponse
-	4,  // 11: api.Keeper.AddSecret:output_type -> api.AddSecretResponse
-	6,  // 12: api.Keeper.GetSecret:output_type -> api.GetSecretResponse
-	8,  // 13: api.Keeper.DeleteSecret:output_type -> api.DeleteSecretResponse
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	0,  // 5: api.GetSecretRequest.meta:type_name -> api.SecretMetadata
+	0,  // 6: api.GetSecretResponse.meta:type_name -> api.SecretMetadata
+	0,  // 7: api.DeleteSecretRequest.meta:type_name -> api.SecretMetadata
+	0,  // 8: api.DeleteSecretResponse.meta:type_name -> api.SecretMetadata
+	1,  // 9: api.Keeper.GetSecrets:input_type -> api.GetSecretsRequest
+	3,  // 10: api.Keeper.AddSecret:input_type -> api.AddSecretRequest
+	5,  // 11: api.Keeper.GetSecret:input_type -> api.GetSecretRequest
+	7,  // 12: api.Keeper.DeleteSecret:input_type -> api.DeleteSecretRequest
+	2,  // 13: api.Keeper.GetSecrets:output_type -> api.GetSecretsResponse
+	4,  // 14: api.Keeper.AddSecret:output_type -> api.AddSecretResponse
+	6,  // 15: api.Keeper.GetSecret:output_type -> api.GetSecretResponse
+	8,  // 16: api.Keeper.DeleteSecret:output_type -> api.DeleteSecretResponse
+	13, // [13:17] is the sub-list for method output_type
+	9,  // [9:13] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_api_keeper_proto_init() }

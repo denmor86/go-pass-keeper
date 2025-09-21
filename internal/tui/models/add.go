@@ -50,6 +50,10 @@ func (m SecretAddModel) Init() tea.Cmd {
 }
 
 func (m SecretAddModel) Update(msg tea.Msg) (SecretAddModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		return m.updateWindowsSize(msg)
+	}
 	switch m.state {
 	case SecretTypeSelectState:
 		return m.updateTypeSelect(msg)
@@ -64,6 +68,26 @@ func (m SecretAddModel) Update(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	default:
 		return m, nil
 	}
+}
+
+// updateWindowsSize - метод обновления размеров окон
+func (m SecretAddModel) updateWindowsSize(msg tea.WindowSizeMsg) (SecretAddModel, tea.Cmd) {
+	m.windowSize = msg
+
+	// Передаем размеры окна всем дочерним моделям
+	loginModel, loginModelCmd := m.loginModel.Update(msg)
+	m.loginModel = loginModel
+
+	fileModel, fileModelCmd := m.fileModel.Update(msg)
+	m.fileModel = fileModel
+
+	textModel, textModelCmd := m.textModel.Update(msg)
+	m.textModel = textModel
+
+	cardModel, cardModelCmd := m.cardModel.Update(msg)
+	m.cardModel = cardModel
+
+	return m, tea.Batch(loginModelCmd, fileModelCmd, textModelCmd, cardModelCmd)
 }
 
 func (m SecretAddModel) updateTypeSelect(msg tea.Msg) (SecretAddModel, tea.Cmd) {

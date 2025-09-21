@@ -8,6 +8,7 @@ import (
 	pb "go-pass-keeper/pkg/proto"
 	"go-pass-keeper/pkg/usercontext"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -52,11 +53,15 @@ func (s *Keeper) AddSecret(ctx context.Context, request *pb.AddSecretRequest) (*
 
 // GetSecret - метод для получения секрета пользователя
 func (s *Keeper) GetSecret(ctx context.Context, request *pb.GetSecretRequest) (*pb.GetSecretResponse, error) {
-	uid, err := usercontext.GetUserId(ctx)
+	_, err := usercontext.GetUserId(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
-	secret, err := s.secrets.Get(ctx, uid, request.GetName())
+	sid, err := uuid.Parse(request.GetMeta().GetId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	secret, err := s.secrets.Get(ctx, sid)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
@@ -68,18 +73,22 @@ func (s *Keeper) GetSecret(ctx context.Context, request *pb.GetSecretRequest) (*
 
 // DeleteSecret - метод удаления секрета пользователя
 func (s *Keeper) DeleteSecret(ctx context.Context, request *pb.DeleteSecretRequest) (*pb.DeleteSecretResponse, error) {
-	uid, err := usercontext.GetUserId(ctx)
+	_, err := usercontext.GetUserId(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
-	if err := s.secrets.Delete(ctx, uid, request.GetName()); err != nil {
+	sid, err := uuid.Parse(request.GetMeta().GetId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if err := s.secrets.Delete(ctx, sid); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &pb.DeleteSecretResponse{}, nil
+	return &pb.DeleteSecretResponse{Meta: request.GetMeta()}, nil
 }
 
 // GetSecrets - метод получения информации о секретах пользователя

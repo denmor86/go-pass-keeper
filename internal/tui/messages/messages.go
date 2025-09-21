@@ -1,6 +1,9 @@
 package messages
 
-import "go-pass-keeper/internal/grpcclient/settings"
+import (
+	"go-pass-keeper/internal/grpcclient/settings"
+	"go-pass-keeper/internal/models"
+)
 
 // AuthSuccess - сообщение об успешной аутентификации
 type AuthSuccessMsg struct {
@@ -16,8 +19,11 @@ type ConfigUpdatedMsg struct {
 // ErrorMsg - сообщение с ошибкой
 type ErrorMsg string
 
+type GotoMainPageMsg struct{}
+
 // Сообщения для управления секретами
 type SecretAddCompleteMsg struct {
+	Id       string
 	Name     string
 	Type     string
 	Login    string
@@ -29,11 +35,13 @@ type SecretAddCompleteMsg struct {
 type SecretAddCancelMsg struct{}
 
 type SecretDeleteMsg struct {
-	ID int
+	Id string
 }
 
 type SecretViewMsg struct {
-	ID int
+	Id string
 }
 
-type SecretRefreshMsg struct{}
+type SecretRefreshMsg struct {
+	Secrets []*models.SecretInfo
+}

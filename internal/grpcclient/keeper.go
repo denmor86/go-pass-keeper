@@ -3,6 +3,7 @@ package grpcclient
 import (
 	"context"
 	"fmt"
+	"go-pass-keeper/internal/grpcclient/interceptors"
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/pkg/logger"
 	pb "go-pass-keeper/pkg/proto"
@@ -30,8 +31,12 @@ type KeeperClientOption func(*KeeperClient)
 func NewKeeperClient(serverAddr string, token string, opts ...KeeperClientOption) *KeeperClient {
 	client := &KeeperClient{
 		serverAddr: serverAddr,
-		opts:       []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
-		token:      token,
+		opts: []grpc.DialOption{
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithUnaryInterceptor(interceptors.AuthInterceptor(token)),
+			grpc.WithStreamInterceptor(interceptors.AuthStreamInterceptor(token)),
+		},
+		token: token,
 	}
 
 	// Применяем переданные опции
@@ -93,6 +98,24 @@ func (uc *KeeperClient) AddSecret(info *models.SecretInfo, content []byte) (*mod
 	}
 }
 
+// GetSecret - метод получает содержимое секрета пользователя
+func (uc *KeeperClient) GetSecret(sid string) ([]byte, error) {
+	if uc.client == nil {
+		return nil, fmt.Errorf("client not connected")
+	}
+	resp, err := uc.client.GetSecret(uc.ctx, &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: sid}})
+	switch status.Code(err) {
+	case codes.OK:
+		return resp.GetContent(), nil
+	case codes.Unauthenticated:
+		logger.Warn("User unauthenticated", err.Error())
+		return nil, fmt.Errorf("user unauthenticated")
+	default:
+		logger.Warn("Get secret error", err.Error())
+		return nil, fmt.Errorf("internal error")
+	}
+}
+
 // GetSecrets - метод получает список секретов пользователя
 func (uc *KeeperClient) GetSecrets() ([]*models.SecretInfo, error) {
 	if uc.client == nil {
@@ -106,7 +129,25 @@ func (uc *KeeperClient) GetSecrets() ([]*models.SecretInfo, error) {
 		logger.Warn("User unauthenticated", err.Error())
 		return nil, fmt.Errorf("user unauthenticated")
 	default:
-		logger.Warn("User login error", err.Error())
+		logger.Warn("Get secret error", err.Error())
 		return nil, fmt.Errorf("internal error")
+	}
+}
+
+// DeleteSecret - метод удаляет секрет
+func (uc *KeeperClient) DeleteSecret(sid string) (string, error) {
+	if uc.client == nil {
+		return "", fmt.Errorf("client not connected")
+	}
+	resp, err := uc.client.DeleteSecret(uc.ctx, &pb.DeleteSecretRequest{Meta: &pb.SecretMetadata{Id: sid}})
+	switch status.Code(err) {
+	case codes.OK:
+		return resp.GetMeta().GetId(), nil
+	case codes.Unauthenticated:
+		logger.Warn("User unauthenticated", err.Error())
+		return "", fmt.Errorf("user unauthenticated")
+	default:
+		logger.Warn("Secret delete error", err.Error())
+		return "", fmt.Errorf("internal error")
 	}
 }

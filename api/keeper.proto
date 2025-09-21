@@ -39,7 +39,7 @@ message AddSecretResponse {
 }
 
 message GetSecretRequest {
-  string name = 1;
+  SecretMetadata meta = 1;
 }
 
 message GetSecretResponse {
@@ -48,8 +48,9 @@ message GetSecretResponse {
 }
 
 message DeleteSecretRequest {
-  string name = 1;
+  SecretMetadata meta = 1;
 }
 
 message DeleteSecretResponse {
+  SecretMetadata meta = 1;
 }

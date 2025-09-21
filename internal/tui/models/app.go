@@ -17,7 +17,7 @@ type AppState int
 
 // Состояние переходов
 const (
-	AuthState AppState = iota
+	MainState AppState = iota
 	LoginState
 	RegisterState
 	SecretState
@@ -37,7 +37,7 @@ type AppModel struct {
 	state      AppState
 	login      LoginModel
 	register   RegisterModel
-	secrets    SecretsModel
+	secrets    ViewerModel
 	settings   SettingsModel
 	viewport   viewport.Model
 	windowSize tea.WindowSizeMsg
@@ -52,10 +52,10 @@ func NewAppModel(config *config.Config) AppModel {
 
 	connection := config.Load()
 	return AppModel{
-		state:    AuthState,
+		state:    MainState,
 		login:    NewLoginModel(connection),
 		register: NewRegisterModel(connection),
-		secrets:  NewSecretsModel(),
+		secrets:  NewViewerModel(connection),
 		settings: NewSettingsModel(connection),
 		viewport: viewport.New(80, 20),
 		focused:  0,
@@ -87,26 +87,25 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.state {
 			case LoginState, RegisterState:
 				// Возврат на главный экран
-				m.state = AuthState
+				m.state = MainState
 				m.login.err = ""
 				m.register.err = ""
 				return m, nil
 			case SettingsState:
 				// Выход из главного экрана или просмотра
-				m.state = AuthState
+				m.state = MainState
 				return m, nil
-			case AuthState:
+			case MainState:
 				// Выход из приложения
 				return m, tea.Quit
 			}
 		}
 
 	case messages.AuthSuccessMsg:
-		m.state = AuthState
+		m.state = MainState
 		m.username = msg.Email
 		m.token = msg.Token
-		m.viewport.SetContent(fmt.Sprintf("Приветствуем, %s!\n\nВы успешно вошли в систему.\n\nЗдесь может быть ваш контент...", m.username))
-		return m, nil
+		m.viewport.SetContent(fmt.Sprintf("Приветствуем, %s!\n\nВы успешно вошли в систему.\n", m.username))
 
 	case messages.ErrorMsg:
 		switch m.state {
@@ -117,16 +116,20 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case messages.GotoMainPageMsg:
+		m.state = MainState
+		return m, nil
+
 	case messages.ConfigUpdatedMsg:
 		m.config.Save(&msg.Connection)
-		m.state = AuthState
+		m.state = MainState
 		return m, nil
 	}
 
 	// Обновление текущего состояния
 	switch m.state {
-	case AuthState:
-		return m.handleAuthUpdate(msg)
+	case MainState:
+		return m.handleMainUpdate(msg)
 	case LoginState:
 		return m.handleLoginUpdate(msg)
 	case RegisterState:
@@ -143,8 +146,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View - метод для отрисовки окна, в зависимости от текущего состояния
 func (m AppModel) View() string {
 	switch m.state {
-	case AuthState:
-		return m.renderAuthView()
+	case MainState:
+		return m.renderMainView()
 	case LoginState:
 		return m.login.View()
 	case RegisterState:
@@ -171,8 +174,8 @@ func (m AppModel) updateWindowsSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) 
 	updatedRegister, registerCmd := m.register.Update(msg)
 	m.register = updatedRegister
 
-	updatedSecrets, secretsCmd := m.secrets.Update(msg)
-	m.secrets = updatedSecrets
+	updatedViewer, secretsCmd := m.secrets.Update(msg)
+	m.secrets = updatedViewer
 
 	updatedSettings, settingsCmd := m.settings.Update(msg)
 	m.settings = updatedSettings
@@ -180,8 +183,8 @@ func (m AppModel) updateWindowsSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) 
 	return m, tea.Batch(loginCmd, registerCmd, secretsCmd, settingsCmd)
 }
 
-// renderAuthView - метод отрисовки основного окна
-func (m AppModel) renderAuthView() string {
+// renderMainView - метод отрисовки основного окна
+func (m AppModel) renderMainView() string {
 	// Статус пользователя
 	userStatus := m.getUserStatus()
 
@@ -304,8 +307,8 @@ func (m AppModel) renderSettingsButton() string {
 		Render(text)
 }
 
-// handleAuthUpdate - метод обработчик действий на кнопках основного окна
-func (m AppModel) handleAuthUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
+// handleMainUpdate - метод обработчик действий на кнопках основного окна
+func (m AppModel) handleMainUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -332,7 +335,7 @@ func (m AppModel) handleAuthUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 					m.state = SecretState
 					return m, nil
 				}
-				return m, nil
+				return m, m.secrets.Init()
 			case SettingsButton:
 				m.state = SettingsState
 				return m, m.settings.inputs[0].Focus()

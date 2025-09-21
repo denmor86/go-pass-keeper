@@ -42,13 +42,13 @@ func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.S
 	return m, nil
 }
 
-func (s *SecretStorage) Get(ctx context.Context, uid uuid.UUID, name string) (*models.SecretData, error) {
+func (s *SecretStorage) Get(ctx context.Context, sid uuid.UUID) (*models.SecretData, error) {
 	const query = `
 		SELECT id, type, name, content FROM secrets
-		WHERE user_id = $1 AND name = $2;
+		WHERE id = $1;
 `
 	m := &models.SecretData{}
-	err := s.db.Pool.QueryRow(ctx, query, uid.String(), name).Scan(&m.ID, &m.Type, &m.Name, &m.Content)
+	err := s.db.Pool.QueryRow(ctx, query, sid.String()).Scan(&m.ID, &m.Type, &m.Name, &m.Content)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -59,12 +59,12 @@ func (s *SecretStorage) Get(ctx context.Context, uid uuid.UUID, name string) (*m
 }
 
 // Delete - метод удаляет запись секрета из таблицы
-func (s *SecretStorage) Delete(ctx context.Context, uid uuid.UUID, name string) error {
+func (s *SecretStorage) Delete(ctx context.Context, sid uuid.UUID) error {
 	const query = `
 		DELETE FROM secrets
-		WHERE user_id = $1 AND name = $2;
+		WHERE id = $1;
 `
-	res, err := s.db.Pool.Exec(ctx, query, uid.String(), name)
+	res, err := s.db.Pool.Exec(ctx, query, sid)
 	if err != nil {
 		return fmt.Errorf("failed to delete secret: %w", err)
 	}
