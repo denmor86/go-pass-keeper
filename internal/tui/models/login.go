@@ -204,12 +204,16 @@ func (m LoginModel) attemptLogin(username string, password string) tea.Cmd {
 		if username == "" || password == "" {
 			return messages.ErrorMsg("заполните все поля")
 		}
-		if len(password) < 6 {
-			return messages.ErrorMsg("пароль должен содержать минимум 6 символов")
-		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
-		defer cancel()
-		token, err := grpcclient.LoginUser(ctx, m.connection.ServerAddress(), username, password)
+		client := grpcclient.NewUserClient(m.connection.ServerAddress())
+		defer func() {
+			cancel()
+			client.Close()
+		}()
+		if err := client.Connect(ctx); err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+		}
+		token, err := client.Login(username, password)
 		if err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка авторизации пользователя %s: %s", username, err.Error()))
 		}

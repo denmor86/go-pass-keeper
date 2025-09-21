@@ -4,15 +4,14 @@ option go_package = "pkg/proto";
 
 package api;
 
-message Secret {
-  string name = 1;
-  string type = 2;
-  bytes content = 3;
-}
+import "google/protobuf/timestamp.proto";
 
-message SecretDescription {
-  string name = 1;
-  string type = 2;
+message SecretMetadata {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  optional google.protobuf.Timestamp created = 4; 
+  optional google.protobuf.Timestamp updated = 5; 
 }
 
 service Keeper {
@@ -26,19 +25,17 @@ message GetSecretsRequest {
 }
 
 message GetSecretsResponse {
-  repeated SecretDescription secrets = 1;
+  repeated SecretMetadata secrets = 1;
 }
 
 
 message AddSecretRequest {
-  string name = 1;
-  string type = 2;
-  bytes content = 3;
+  SecretMetadata meta = 1;
+  bytes content = 2;
 }
 
 message AddSecretResponse {
-  string name = 1;
-  string type = 2;
+  SecretMetadata meta = 1;
 }
 
 message GetSecretRequest {
@@ -46,9 +43,8 @@ message GetSecretRequest {
 }
 
 message GetSecretResponse {
-  string name = 1;
-  string type = 2;
-  bytes content = 3;
+  SecretMetadata meta = 1;
+  bytes content = 2;
 }
 
 message DeleteSecretRequest {

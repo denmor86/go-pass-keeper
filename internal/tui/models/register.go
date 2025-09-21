@@ -211,18 +211,19 @@ func (m RegisterModel) attemptRegister(username string, password string, confirm
 		if username == "" || password == "" || confirm == "" {
 			return messages.ErrorMsg("заполните все поля")
 		}
-		if len(username) < 3 {
-			return messages.ErrorMsg("имя пользователя должно содержать минимум 3 символа")
-		}
-		if len(password) < 6 {
-			return messages.ErrorMsg("пароль должен содержать минимум 6 символов")
-		}
 		if password != confirm {
 			return messages.ErrorMsg("пароли не совпадают")
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
-		defer cancel()
-		token, err := grpcclient.RegisterUser(ctx, m.connection.ServerAddress(), username, password)
+		client := grpcclient.NewUserClient(m.connection.ServerAddress())
+		defer func() {
+			cancel()
+			client.Close()
+		}()
+		if err := client.Connect(ctx); err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+		}
+		token, err := client.Register(username, password)
 		if err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка регистрации пользователя %s: %s", username, err.Error()))
 		}

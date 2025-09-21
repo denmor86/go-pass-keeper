@@ -77,10 +77,6 @@ var (
 			Foreground(ErrorColor).
 			Bold(true)
 
-	SuccessStyle = lipgloss.NewStyle().
-			Foreground(SuccessColor).
-			Bold(true)
-
 	HelpStyle = lipgloss.NewStyle().
 			Foreground(TextSecondary).
 			Italic(true).
@@ -121,23 +117,25 @@ var (
 			Foreground(TextSecondary).
 			MarginBottom(1)
 
-	// Стили для контента
-	ContentStyle = lipgloss.NewStyle().
-			Foreground(TextPrimary).
-			Padding(1, 2).
-			Background(SurfaceColor).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(SurfaceColor).
-			Width(60).
-			Height(10)
-
 	// Стили для разделителей
 	DividerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#444")).
 			SetString("•").
 			Padding(0, 2)
 
-	// Стиль для вертикального списка
-	VerticalListStyle = lipgloss.NewStyle().
-				Margin(0, 0, 2, 0)
+	TableStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Padding(0, 1)
+
+	TableHeaderStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(TextPrimary).
+				Background(SurfaceColor).
+				Padding(0, 1)
+
+	TableSelectedStyle = lipgloss.NewStyle().
+				Foreground(TextPrimary).
+				Background(SecondaryColor).
+				Bold(true)
 )

@@ -43,7 +43,7 @@ func (m *MockUser) EXPECT() *MockUserMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockUser) Add(ctx context.Context, user *models.User) (uuid.UUID, error) {
+func (m *MockUser) Add(ctx context.Context, user *models.UserData) (uuid.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Add", ctx, user)
 	ret0, _ := ret[0].(uuid.UUID)
@@ -58,10 +58,10 @@ func (mr *MockUserMockRecorder) Add(ctx, user any) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockUser) Get(ctx context.Context, login, password string) (*models.User, error) {
+func (m *MockUser) Get(ctx context.Context, login, password string) (*models.UserData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", ctx, login, password)
-	ret0, _ := ret[0].(*models.User)
+	ret0, _ := ret[0].(*models.UserData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -97,10 +97,10 @@ func (m *MockSecret) EXPECT() *MockSecretMockRecorder {
 }
 
 // Add mocks base method.
-func (m_2 *MockSecret) Add(ctx context.Context, uid uuid.UUID, m *models.Secret) (uuid.UUID, error) {
+func (m_2 *MockSecret) Add(ctx context.Context, uid uuid.UUID, m *models.SecretData) (*models.SecretData, error) {
 	m_2.ctrl.T.Helper()
 	ret := m_2.ctrl.Call(m_2, "Add", ctx, uid, m)
-	ret0, _ := ret[0].(uuid.UUID)
+	ret0, _ := ret[0].(*models.SecretData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -126,10 +126,10 @@ func (mr *MockSecretMockRecorder) Delete(ctx, uid, name any) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockSecret) Get(ctx context.Context, uid uuid.UUID, name string) (*models.Secret, error) {
+func (m *MockSecret) Get(ctx context.Context, uid uuid.UUID, name string) (*models.SecretData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", ctx, uid, name)
-	ret0, _ := ret[0].(*models.Secret)
+	ret0, _ := ret[0].(*models.SecretData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -141,10 +141,10 @@ func (mr *MockSecretMockRecorder) Get(ctx, uid, name any) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockSecret) List(ctx context.Context, uid uuid.UUID) ([]*models.Secret, error) {
+func (m *MockSecret) List(ctx context.Context, uid uuid.UUID) ([]*models.SecretData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", ctx, uid)
-	ret0, _ := ret[0].([]*models.Secret)
+	ret0, _ := ret[0].([]*models.SecretData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

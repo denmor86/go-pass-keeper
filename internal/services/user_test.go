@@ -149,7 +149,7 @@ func TestLoginUser(t *testing.T) {
 		{
 			TestName: "AuthenticateUser Success #1",
 			SetupMocks: func() {
-				mockUsers.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.User{ID: uuid.MustParse(uid), Login: "mda"}, nil)
+				mockUsers.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.UserData{ID: uuid.MustParse(uid), Login: "mda"}, nil)
 			},
 			User:          &pb.LoginRequest{Login: "mda", Password: "test_pass"},
 			ExpectedError: nil,

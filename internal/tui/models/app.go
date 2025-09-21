@@ -20,7 +20,7 @@ const (
 	AuthState AppState = iota
 	LoginState
 	RegisterState
-	ViewState
+	SecretState
 	SettingsState
 )
 
@@ -28,7 +28,7 @@ const (
 const (
 	LoginButton = iota
 	RegisterButton
-	ViewButton
+	SecretButton
 	SettingsButton
 )
 
@@ -37,7 +37,7 @@ type AppModel struct {
 	state      AppState
 	login      LoginModel
 	register   RegisterModel
-	view       ViewModel
+	secrets    SecretsModel
 	settings   SettingsModel
 	viewport   viewport.Model
 	windowSize tea.WindowSizeMsg
@@ -55,7 +55,7 @@ func NewAppModel(config *config.Config) AppModel {
 		state:    AuthState,
 		login:    NewLoginModel(connection),
 		register: NewRegisterModel(connection),
-		view:     NewViewModel(),
+		secrets:  NewSecretsModel(),
 		settings: NewSettingsModel(connection),
 		viewport: viewport.New(80, 20),
 		focused:  0,
@@ -76,24 +76,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.windowSize = msg
-		m.viewport.Width = msg.Width
-		m.viewport.Height = msg.Height
-
-		// Передаем размеры окна всем дочерним моделям
-		updatedLogin, loginCmd := m.login.Update(msg)
-		m.login = updatedLogin
-
-		updatedRegister, registerCmd := m.register.Update(msg)
-		m.register = updatedRegister
-
-		updatedView, viewCmd := m.view.Update(msg)
-		m.view = updatedView
-
-		updatedSettings, settingsCmd := m.settings.Update(msg)
-		m.settings = updatedSettings
-
-		return m, tea.Batch(loginCmd, registerCmd, viewCmd, settingsCmd)
+		return m.updateWindowsSize(msg)
 
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -108,7 +91,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.login.err = ""
 				m.register.err = ""
 				return m, nil
-			case ViewState, SettingsState:
+			case SettingsState:
 				// Выход из главного экрана или просмотра
 				m.state = AuthState
 				return m, nil
@@ -148,8 +131,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleLoginUpdate(msg)
 	case RegisterState:
 		return m.handleRegisterUpdate(msg)
-	case ViewState:
-		return m.handleViewUpdate(msg)
+	case SecretState:
+		return m.handleSecretUpdate(msg)
 	case SettingsState:
 		return m.handleSettingsUpdate(msg)
 	}
@@ -166,13 +149,35 @@ func (m AppModel) View() string {
 		return m.login.View()
 	case RegisterState:
 		return m.register.View()
-	case ViewState:
-		return m.view.View(m.username)
+	case SecretState:
+		return m.secrets.View()
 	case SettingsState:
 		return m.settings.View()
 	default:
 		return "Неизвестное состояние"
 	}
+}
+
+// updateWindowsSize - метод обновления размеров окон
+func (m AppModel) updateWindowsSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.windowSize = msg
+	m.viewport.Width = msg.Width
+	m.viewport.Height = msg.Height
+
+	// Передаем размеры окна всем дочерним моделям
+	updatedLogin, loginCmd := m.login.Update(msg)
+	m.login = updatedLogin
+
+	updatedRegister, registerCmd := m.register.Update(msg)
+	m.register = updatedRegister
+
+	updatedSecrets, secretsCmd := m.secrets.Update(msg)
+	m.secrets = updatedSecrets
+
+	updatedSettings, settingsCmd := m.settings.Update(msg)
+	m.settings = updatedSettings
+
+	return m, tea.Batch(loginCmd, registerCmd, secretsCmd, settingsCmd)
 }
 
 // renderAuthView - метод отрисовки основного окна
@@ -197,7 +202,7 @@ func (m AppModel) renderAuthView() string {
 		lipgloss.JoinVertical(lipgloss.Center,
 			m.renderLoginButton(),
 			m.renderRegisterButton(),
-			m.renderViewButton()),
+			m.renderSecretButton()),
 		lipgloss.NewStyle().Height(2).Render(""),
 		m.renderSettingsButton(),
 		lipgloss.NewStyle().Height(1).Render(""),
@@ -261,11 +266,11 @@ func (m AppModel) renderRegisterButton() string {
 		Render(text)
 }
 
-// renderViewButton - метод отрисовки кнопки просмотра секретов
-func (m AppModel) renderViewButton() string {
+// renderSecretButton - метод отрисовки кнопки просмотра секретов
+func (m AppModel) renderSecretButton() string {
 	text := "👁️ Просмотр"
 
-	if ViewButton == m.focused {
+	if SecretButton == m.focused {
 		if m.isAuthorized() {
 			return styles.ActiveButtonStyle.
 				Margin(0, 0, 1, 0).
@@ -322,9 +327,9 @@ func (m AppModel) handleAuthUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 			case RegisterButton:
 				m.state = RegisterState
 				return m, m.register.inputs[0].Focus()
-			case ViewButton:
+			case SecretButton:
 				if m.isAuthorized() {
-					m.state = ViewState
+					m.state = SecretState
 					return m, nil
 				}
 				return m, nil
@@ -351,14 +356,14 @@ func (m AppModel) handleRegisterUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	return m, cmd
 }
 
-// handleViewUpdate - метод обработчик действий на кнопке просмотра секретов
-func (m AppModel) handleViewUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
-	updatedModel, cmd := m.view.Update(msg)
-	m.view = updatedModel
+// handleSecretUpdate - метод обработчик действий на кнопке просмотра секретов
+func (m AppModel) handleSecretUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
+	updatedModel, cmd := m.secrets.Update(msg)
+	m.secrets = updatedModel
 	return m, cmd
 }
 
-// handleViewUpdate - метод обработчик действий на кнопке настроек клиента
+// handleSettingsUpdate - метод обработчик действий на кнопке настроек клиента
 func (m AppModel) handleSettingsUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 	updatedModel, cmd := m.settings.Update(msg)
 	m.settings = updatedModel
@@ -367,5 +372,6 @@ func (m AppModel) handleSettingsUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 
 // isAuthorized - метод определения наличия авторизации пользователя
 func (m AppModel) isAuthorized() bool {
-	return len(m.token) > 0
+	return true
+	//return len(m.token) > 0
 }

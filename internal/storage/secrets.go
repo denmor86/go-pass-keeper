@@ -23,31 +23,31 @@ func NewSecretStorage(db *Database) *SecretStorage {
 }
 
 // Add - метод добавляет секрет пользователя в хранилище
-func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.Secret) (uuid.UUID, error) {
+func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.SecretData) (*models.SecretData, error) {
 	const query = `
 		INSERT INTO secrets (user_id, type, name, content)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id
+		RETURNING id, created_at, updated_at
 `
-	var id uuid.UUID
-	err := s.db.Pool.QueryRow(ctx, query, secret.UserID, secret.Type, secret.Name, secret.Content).Scan(&id)
+	m := &models.SecretData{}
+	err := s.db.Pool.QueryRow(ctx, query, secret.UserID, secret.Type, secret.Name, secret.Content).Scan(&m.ID, &m.Created, &m.Updated)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(string(pgErr.Code)) {
-			return uuid.Nil, ErrAlreadyExists
+			return m, ErrAlreadyExists
 		}
-		return uuid.Nil, fmt.Errorf("failed to add secret: %w", err)
+		return nil, fmt.Errorf("failed to add secret: %w", err)
 	}
 
-	return id, nil
+	return m, nil
 }
 
-func (s *SecretStorage) Get(ctx context.Context, uid uuid.UUID, name string) (*models.Secret, error) {
+func (s *SecretStorage) Get(ctx context.Context, uid uuid.UUID, name string) (*models.SecretData, error) {
 	const query = `
 		SELECT id, type, name, content FROM secrets
 		WHERE user_id = $1 AND name = $2;
 `
-	m := &models.Secret{}
+	m := &models.SecretData{}
 	err := s.db.Pool.QueryRow(ctx, query, uid.String(), name).Scan(&m.ID, &m.Type, &m.Name, &m.Content)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -75,7 +75,7 @@ func (s *SecretStorage) Delete(ctx context.Context, uid uuid.UUID, name string) 
 }
 
 // List - метод возвращает список секретов пользователя
-func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.Secret, error) {
+func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.SecretData, error) {
 	const SQL = `
 		SELECT id, user_id, type_secret, name FROM secrets
 		WHERE user_id = $1 ORDER BY name
@@ -87,7 +87,7 @@ func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.Secr
 		}
 		return nil, fmt.Errorf("failed to get secrets: %w", err)
 	}
-	res := make([]*models.Secret, 0)
+	res := make([]*models.SecretData, 0)
 
 	for rows.Next() {
 		var (
@@ -105,7 +105,7 @@ func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.Secr
 		if err != nil {
 			return res, fmt.Errorf("failed scan secret data: %w", err)
 		}
-		res = append(res, &models.Secret{
+		res = append(res, &models.SecretData{
 			ID:     id,
 			UserID: user_id,
 			Name:   name,

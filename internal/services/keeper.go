@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Keeper - модель сервиса секретов
@@ -33,20 +34,20 @@ func (s *Keeper) AddSecret(ctx context.Context, request *pb.AddSecretRequest) (*
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
-	m := &models.Secret{
+	m := &models.SecretData{
 		UserID:  uid,
-		Name:    request.GetName(),
-		Type:    request.GetType(),
+		Name:    request.GetMeta().GetName(),
+		Type:    request.GetMeta().GetType(),
 		Content: request.GetContent(),
 	}
-	_, err = s.secrets.Add(ctx, uid, m)
+	secret, err := s.secrets.Add(ctx, uid, m)
 	if err != nil {
 		if errors.Is(err, storage.ErrAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.AddSecretResponse{Name: m.Name, Type: m.Type}, nil
+	return &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: m.Name, Type: m.Type}}, nil
 }
 
 // GetSecret - метод для получения секрета пользователя
@@ -62,7 +63,7 @@ func (s *Keeper) GetSecret(ctx context.Context, request *pb.GetSecretRequest) (*
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.GetSecretResponse{Name: secret.Name, Type: secret.Type, Content: secret.Content}, nil
+	return &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: secret.Name, Type: secret.Type}, Content: secret.Content}, nil
 }
 
 // DeleteSecret - метод удаления секрета пользователя
@@ -98,9 +99,12 @@ func (s *Keeper) GetSecrets(ctx context.Context, request *pb.GetSecretsRequest) 
 
 	resp := &pb.GetSecretsResponse{}
 	for _, secret := range list {
-		resp.Secrets = append(resp.Secrets, &pb.SecretDescription{
-			Name: secret.Name,
-			Type: secret.Type,
+		resp.Secrets = append(resp.Secrets, &pb.SecretMetadata{
+			Id:      secret.ID.String(),
+			Name:    secret.Name,
+			Type:    secret.Type,
+			Created: timestamppb.New(secret.Created),
+			Updated: timestamppb.New(secret.Updated),
 		})
 	}
 

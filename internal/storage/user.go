@@ -23,7 +23,7 @@ func NewUserStorage(db *Database) *UserStorage {
 }
 
 // Add - метод добавляет пользователя в хранилище
-func (s *UserStorage) Add(ctx context.Context, user *models.User) (uuid.UUID, error) {
+func (s *UserStorage) Add(ctx context.Context, user *models.UserData) (uuid.UUID, error) {
 	const query = `
 		INSERT INTO users (login, password, salt)
 		VALUES ($1, crypt($2, gen_salt('bf')), $3)
@@ -43,12 +43,12 @@ func (s *UserStorage) Add(ctx context.Context, user *models.User) (uuid.UUID, er
 }
 
 // Get - метод извлекает пользователя из хранилища с использованием логина и пароля
-func (s *UserStorage) Get(ctx context.Context, login string, password string) (*models.User, error) {
+func (s *UserStorage) Get(ctx context.Context, login string, password string) (*models.UserData, error) {
 	const query = `
 		SELECT id, login, salt FROM users
 		WHERE login = $1 AND password = crypt($2, password);
 `
-	user := &models.User{}
+	user := &models.UserData{}
 
 	err := s.db.Pool.QueryRow(ctx, query, login, password).Scan(&user.ID, &user.Login, &user.Salt)
 	if err != nil {

@@ -41,7 +41,7 @@ func (s User) Register(ctx context.Context, request *pb.RegisterRequest) (*pb.Re
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	uid, err := s.users.Add(ctx, &models.User{Login: request.GetLogin(), Password: request.GetPassword(), Salt: salt})
+	uid, err := s.users.Add(ctx, &models.UserData{Login: request.GetLogin(), Password: request.GetPassword(), Salt: salt})
 	switch err {
 	case nil:
 	case storage.ErrAlreadyExists:
