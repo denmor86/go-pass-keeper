@@ -213,10 +213,10 @@ func (m LoginModel) attemptLogin(username string, password string) tea.Cmd {
 		if err := client.Connect(ctx); err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
 		}
-		token, err := client.Login(username, password)
+		token, salt, err := client.Login(username, password)
 		if err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка авторизации пользователя %s: %s", username, err.Error()))
 		}
-		return messages.AuthSuccessMsg{Token: token, Email: username}
+		return messages.AuthSuccessMsg{Token: token, Username: username, Salt: salt}
 	}
 }

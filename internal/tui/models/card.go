@@ -1,7 +1,7 @@
 package models
 
 import (
-	"fmt"
+	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
 
@@ -21,7 +21,7 @@ func NewBankCardSecretModel() BankCardSecretModel {
 		focused: 0,
 	}
 
-	model.cardInputs = make([]textinput.Model, 4)
+	model.cardInputs = make([]textinput.Model, 5)
 	for i := range model.cardInputs {
 		t := textinput.New()
 		t.TextStyle = styles.BlurredStyle
@@ -29,17 +29,20 @@ func NewBankCardSecretModel() BankCardSecretModel {
 
 		switch i {
 		case 0:
+			t.Placeholder = "Имя карты"
+			t.CharLimit = 100
+		case 1:
 			t.Placeholder = "Номер карты"
 			t.CharLimit = 19
-		case 1:
+		case 2:
 			t.Placeholder = "Срок действия (MM/YY)"
 			t.CharLimit = 5
-		case 2:
+		case 3:
 			t.Placeholder = "CVV код"
 			t.CharLimit = 3
 			t.EchoMode = textinput.EchoPassword
 			t.EchoCharacter = '•'
-		case 3:
+		case 4:
 			t.Placeholder = "Имя владельца"
 		}
 
@@ -74,39 +77,22 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 				m.focused++
 			}
 
-			if m.focused > 3 {
+			if m.focused > 4 {
 				m.focused = 0
 			} else if m.focused < 0 {
-				m.focused = 3
+				m.focused = 4
 			}
 
 			cmds = append(cmds, m.cardInputs[m.focused].Focus())
 			return m, tea.Batch(cmds...)
 
 		case "enter":
-			// Проверяем, что все поля заполнены
-			allFilled := true
-			for _, input := range m.cardInputs {
-				if input.Value() == "" {
-					allFilled = false
-					break
-				}
-			}
-
-			if allFilled {
-				return m, func() tea.Msg {
-					return messages.SecretAddCompleteMsg{
-						Name: "Банковская карта",
-						Type: "Банковская карта",
-						Content: fmt.Sprintf("Номер: %s\nСрок: %s\nCVV: %s\nВладелец: %s",
-							m.cardInputs[0].Value(),
-							m.cardInputs[1].Value(),
-							m.cardInputs[2].Value(),
-							m.cardInputs[3].Value()),
-					}
-				}
-			}
-			return m, nil
+			return m, m.attemptAddSecret(
+				m.cardInputs[0].Value(),
+				m.cardInputs[1].Value(),
+				m.cardInputs[2].Value(),
+				m.cardInputs[3].Value(),
+				m.cardInputs[4].Value())
 
 		case "esc":
 			return m, func() tea.Msg {
@@ -126,10 +112,11 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 
 func (m BankCardSecretModel) View() string {
 	fields := []string{
-		m.renderInputField("💳 Номер карты:", m.cardInputs[0], 0),
-		m.renderInputField("📅 Срок действия:", m.cardInputs[1], 1),
-		m.renderInputField("🔒 CVV код:", m.cardInputs[2], 2),
-		m.renderInputField("👤 Владелец:", m.cardInputs[3], 3),
+		m.renderInputField("📝 Имя карты:", m.cardInputs[0], 0),
+		m.renderInputField("💳 Номер карты:", m.cardInputs[1], 1),
+		m.renderInputField("📅 Срок действия:", m.cardInputs[2], 2),
+		m.renderInputField("🔒 CVV код:", m.cardInputs[3], 3),
+		m.renderInputField("👤 Владелец:", m.cardInputs[4], 4),
 	}
 
 	content := lipgloss.JoinVertical(
@@ -179,4 +166,26 @@ func (m BankCardSecretModel) renderInputField(label string, input textinput.Mode
 		styles.InputLabelStyle.Render(label),
 		inputStyle.Render(input.View()),
 	) + "\n"
+}
+
+// attemptAddSecret - метод обработки добавления секрета
+func (m BankCardSecretModel) attemptAddSecret(name string, number string, cvv string, date string, owner string) tea.Cmd {
+	return func() tea.Msg {
+		if len(name) == 0 {
+			return messages.ErrorMsg("Необходимо задать имя секрета")
+		}
+		if len(number) == 0 {
+			return messages.ErrorMsg("Необходимо задать номер карты")
+		}
+		if len(cvv) == 0 {
+			return messages.ErrorMsg("Необходимо задать CVV карты")
+		}
+		if len(date) == 0 {
+			return messages.ErrorMsg("Необходимо задать дату выдачи карты")
+		}
+		if len(owner) == 0 {
+			return messages.ErrorMsg("Необходимо задать владельца карты")
+		}
+		return messages.AddSecretCardMsg{Data: messages.SecretCard{Name: name, Type: models.SecretCardType, Number: number, CVV: cvv, Date: date, Owner: owner}}
+	}
 }

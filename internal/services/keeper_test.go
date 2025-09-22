@@ -58,11 +58,11 @@ func TestAddSecret(t *testing.T) {
 		{
 			TestName: "Success. Add secret #1",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "file"}, nil)
+				mockSecrets.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "binary"}, nil)
 			},
 			ExpectedError: nil,
-			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "file"}, Content: []byte("0x100")},
-			Responce:      &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "file"}},
+			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
+			Responce:      &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
@@ -71,7 +71,7 @@ func TestAddSecret(t *testing.T) {
 				mockSecrets.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, storage.ErrAlreadyExists)
 			},
 			ExpectedError: errors.New("rpc error: code = AlreadyExists desc = already exists"),
-			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "file"}, Content: []byte("0x100")},
+			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			Responce:      nil,
 			UserId:        uuid.MustParse(user_uuid),
 		},
@@ -81,7 +81,7 @@ func TestAddSecret(t *testing.T) {
 				mockSecrets.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to add secret:"))
 			},
 			ExpectedError: errors.New("rpc error: code = Internal desc = failed to add secret:"),
-			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "file"}, Content: []byte("0x100")},
+			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			Responce:      nil,
 			UserId:        uuid.MustParse(user_uuid),
 		},
@@ -90,7 +90,7 @@ func TestAddSecret(t *testing.T) {
 			SetupMocks: func() {
 			},
 			ExpectedError: errors.New("rpc error: code = Unauthenticated desc = unknown user"),
-			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "file"}, Content: []byte("0x100")},
+			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			Responce:      nil,
 			UserId:        uuid.Nil,
 		},
@@ -144,11 +144,11 @@ func TestGetSecret(t *testing.T) {
 		{
 			TestName: "Success. Get secret #1",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "file", Content: []byte("0x100")}, nil)
+				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "binary", Content: []byte("0x100")}, nil)
 			},
 			ExpectedError: nil,
 			Request:       &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
-			Responce:      &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "file"}, Content: []byte("0x100")},
+			Responce:      &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
@@ -310,13 +310,13 @@ func TestGetSecrets(t *testing.T) {
 			SetupMocks: func() {
 				mockSecrets.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*models.SecretData{
 					{ID: uuid.MustParse(secret_uuid), Type: "password", Name: "Password", Created: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC), Updated: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)},
-					{ID: uuid.MustParse(user_uuid), Type: "file", Name: "File", Created: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC), Updated: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)}}, nil)
+					{ID: uuid.MustParse(user_uuid), Type: "binary", Name: "File", Created: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC), Updated: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)}}, nil)
 			},
 			ExpectedError: nil,
 			Request:       &pb.GetSecretsRequest{},
 			Responce: &pb.GetSecretsResponse{Secrets: []*pb.SecretMetadata{
 				{Id: secret_uuid, Type: "password", Name: "Password", Created: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)), Updated: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC))},
-				{Id: user_uuid, Type: "file", Name: "File", Created: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)), Updated: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC))}}},
+				{Id: user_uuid, Type: "binary", Name: "File", Created: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)), Updated: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC))}}},
 			UserId: uuid.MustParse(user_uuid),
 		},
 		{

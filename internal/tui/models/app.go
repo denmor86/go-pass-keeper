@@ -103,7 +103,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case messages.AuthSuccessMsg:
 		m.state = MainState
-		m.username = msg.Email
+		m.username = msg.Username
 		m.token = msg.Token
 		m.viewport.SetContent(fmt.Sprintf("Приветствуем, %s!\n\nВы успешно вошли в систему.\n", m.username))
 
@@ -333,9 +333,9 @@ func (m AppModel) handleMainUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 			case SecretButton:
 				if m.isAuthorized() {
 					m.state = SecretState
-					return m, nil
+					return m, m.secrets.Init()
 				}
-				return m, m.secrets.Init()
+				return m, nil
 			case SettingsButton:
 				m.state = SettingsState
 				return m, m.settings.inputs[0].Focus()

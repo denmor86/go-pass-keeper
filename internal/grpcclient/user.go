@@ -69,9 +69,9 @@ func (uc *UserClient) Close() error {
 }
 
 // Register - метод регистрирует нового пользователя
-func (uc *UserClient) Register(login string, password string) (string, error) {
+func (uc *UserClient) Register(login string, password string) (string, string, error) {
 	if uc.client == nil {
-		return "", fmt.Errorf("client not connected")
+		return "", "", fmt.Errorf("client not connected")
 	}
 
 	resp, err := uc.client.Register(uc.ctx, &pb.RegisterRequest{
@@ -82,20 +82,20 @@ func (uc *UserClient) Register(login string, password string) (string, error) {
 	switch status.Code(err) {
 	case codes.OK:
 		logger.Info("User registered", login)
-		return resp.GetToken(), nil
+		return resp.GetToken(), resp.GetSalt(), nil
 	case codes.InvalidArgument:
 		logger.Warn("invalid user", err.Error())
-		return "", fmt.Errorf("invalid user")
+		return "", "", fmt.Errorf("invalid user")
 	default:
 		logger.Warn("User register error", err.Error())
-		return "", fmt.Errorf("internal error")
+		return "", "", fmt.Errorf("internal error")
 	}
 }
 
 // Login - метод авторизует пользователя
-func (uc *UserClient) Login(login, password string) (string, error) {
+func (uc *UserClient) Login(login, password string) (string, string, error) {
 	if uc.client == nil {
-		return "", fmt.Errorf("client not connected")
+		return "", "", fmt.Errorf("client not connected")
 	}
 
 	resp, err := uc.client.Login(uc.ctx, &pb.LoginRequest{
@@ -106,12 +106,12 @@ func (uc *UserClient) Login(login, password string) (string, error) {
 	switch status.Code(err) {
 	case codes.OK:
 		logger.Info("User is authorized", login)
-		return resp.GetToken(), nil
+		return resp.GetToken(), resp.GetSalt(), nil
 	case codes.Unauthenticated:
 		logger.Warn("User unauthenticated", err.Error())
-		return "", fmt.Errorf("user unauthenticated")
+		return "", "", fmt.Errorf("user unauthenticated")
 	default:
 		logger.Warn("User login error", err.Error())
-		return "", fmt.Errorf("internal error")
+		return "", "", fmt.Errorf("internal error")
 	}
 }

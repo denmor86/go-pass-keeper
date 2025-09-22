@@ -8,6 +8,7 @@ import (
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
+	"go-pass-keeper/pkg/crypto"
 	"time"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -41,6 +42,7 @@ type ViewerModel struct {
 	selectedSecret *models.SecretInfo
 	connection     *settings.Connection
 	token          string
+	cryptoKey      []byte
 }
 
 func NewViewerModel(connection *settings.Connection) ViewerModel {
@@ -78,13 +80,21 @@ func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 			}
 		}
 	case messages.AuthSuccessMsg:
-		m.token = msg.Token
-		return m, nil
+		return m, m.handleAuthAction(msg)
+
+	case messages.AddSecretPasswordMsg:
+		m.state = ViewerListState
+		return m, m.attemptAddSecret(&msg)
+
+	case messages.AddSecretCardMsg:
+		m.state = ViewerListState
+		return m, m.attemptAddSecret(&msg)
 
 	case messages.SecretRefreshMsg:
 		m.secrets = msg.Secrets
 		m.refreshViewer()
 	}
+
 	switch m.state {
 	case SecretAddState:
 		return m.handleAddState(msg)
@@ -147,14 +157,6 @@ func (m ViewerModel) handleAddState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	// Передаем сообщение в модель добавления
 	updatedModel, cmd := m.addModel.Update(msg)
 	m.addModel = updatedModel
-
-	// Проверяем, не завершили ли мы добавление
-	switch msg := msg.(type) {
-	case messages.SecretAddCompleteMsg:
-		m = m.handleAddComplete(msg)
-		return m, nil
-	}
-
 	return m, cmd
 }
 
@@ -164,12 +166,6 @@ func (m ViewerModel) handleViewState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 		m.state = ViewerListState
 	}
 	return m, nil
-}
-
-func (m ViewerModel) handleAddComplete(msg messages.SecretAddCompleteMsg) ViewerModel {
-	m = m.refreshViewer()
-	m.state = ViewerListState
-	return m
 }
 
 func (m ViewerModel) handleEnterAction() (ViewerModel, tea.Cmd) {
@@ -404,6 +400,7 @@ func (m ViewerModel) renderSecretField(label, value string) string {
 	) + "\n"
 }
 
+// attemptGetSecrets - обработчик получения секретов
 func (m ViewerModel) attemptGetSecrets() tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
@@ -422,6 +419,8 @@ func (m ViewerModel) attemptGetSecrets() tea.Cmd {
 		return messages.SecretRefreshMsg{Secrets: secrets}
 	}
 }
+
+// attemptDeleteSecret - обработчик удаления секрета
 func (m ViewerModel) attemptDeleteSecret(sid string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
@@ -438,5 +437,62 @@ func (m ViewerModel) attemptDeleteSecret(sid string) tea.Cmd {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка удаления секрета: %s", err.Error()))
 		}
 		return messages.SecretDeleteMsg{Id: id}
+	}
+}
+
+// attemptAddSecret - обработчик добавления секрета
+func (m ViewerModel) attemptAddSecret(converter messages.EncryptConverter) tea.Cmd {
+	return func() tea.Msg {
+		info, content, err := converter.ToModel(m.cryptoKey)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка добавления секрета: %s", err.Error()))
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		defer func() {
+			cancel()
+			client.Close()
+		}()
+		if err := client.Connect(ctx); err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+		}
+		_, err = client.AddSecret(info, content)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка добавления секрета: %s", err.Error()))
+		}
+		return messages.SecretUpdateMsg{}
+	}
+}
+
+// attemptGetSecret - обработчик получения секрета
+func (m ViewerModel) attemptGetSecret(sid string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		defer func() {
+			cancel()
+			client.Close()
+		}()
+		if err := client.Connect(ctx); err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+		}
+		info, content, err := client.GetSecret(sid)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка добавления секрета: %s", err.Error()))
+		}
+		return messages.ToMessage(m.cryptoKey, info, content)
+	}
+}
+
+// attemptAddSecret - обработчик добавления секрета
+func (m ViewerModel) handleAuthAction(msg messages.AuthSuccessMsg) tea.Cmd {
+	return func() tea.Msg {
+		m.token = msg.Token
+		key, err := crypto.MakeCryptoKey("secret", msg.Salt)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка формирования ключа: %s", err.Error()))
+		}
+		m.cryptoKey = key
+		return messages.SecretUpdateMsg{}
 	}
 }

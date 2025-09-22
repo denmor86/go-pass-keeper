@@ -1,6 +1,7 @@
 package models
 
 import (
+	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
 	"os"
@@ -44,34 +45,7 @@ func (m FileSecretModel) Update(msg tea.Msg) (FileSecretModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			if m.filePathInput.Value() != "" {
-				// Проверяем существование файла
-				if _, err := os.Stat(m.filePathInput.Value()); err == nil {
-					// Читаем содержимое файла
-					content, err := os.ReadFile(m.filePathInput.Value())
-					if err == nil {
-						return m, func() tea.Msg {
-							return messages.SecretAddCompleteMsg{
-								Name:     filepath.Base(m.filePathInput.Value()),
-								Type:     "Файл",
-								FileName: m.filePathInput.Value(),
-								Content:  string(content),
-							}
-						}
-					}
-				} else {
-					// Файл не существует, но все равно сохраняем путь
-					return m, func() tea.Msg {
-						return messages.SecretAddCompleteMsg{
-							Name:     filepath.Base(m.filePathInput.Value()),
-							Type:     "Файл",
-							FileName: m.filePathInput.Value(),
-							Content:  "Файл не найден или недоступен",
-						}
-					}
-				}
-			}
-			return m, nil
+			return m, m.attemptAddSecret(m.filePathInput.Value())
 
 		case "esc":
 			return m, func() tea.Msg {
@@ -154,4 +128,23 @@ func (m FileSecretModel) renderInputField(label string, input textinput.Model) s
 		styles.InputLabelStyle.Render(label),
 		styles.FocusedInputFieldStyle.Render(input.View()),
 	) + "\n"
+}
+
+// attemptAddSecret - метод обработки добавления секрета
+func (m FileSecretModel) attemptAddSecret(filename string) tea.Cmd {
+	return func() tea.Msg {
+		if filename == "" {
+			return messages.ErrorMsg("Необходимо задать имя файла")
+		}
+		// Проверяем существование файла
+		if _, err := os.Stat(m.filePathInput.Value()); err == nil {
+			// Читаем содержимое файла
+			content, err := os.ReadFile(m.filePathInput.Value())
+			if err != nil {
+				return messages.ErrorMsg("Ошибка чтения файла")
+			}
+			return messages.AddSecretBinaryMsg{Data: messages.SecretBinary{Name: filepath.Base(filename), Type: models.SecretBinaryType, Blob: content}}
+		}
+		return messages.ErrorMsg("Файл не найден или недоступен")
+	}
 }

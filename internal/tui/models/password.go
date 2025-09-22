@@ -1,6 +1,7 @@
 package models
 
 import (
+	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
 
@@ -84,17 +85,7 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 
 		case "enter":
-			if m.nameInput.Value() != "" && m.loginInput.Value() != "" && m.passwordInput.Value() != "" {
-				return m, func() tea.Msg {
-					return messages.SecretAddCompleteMsg{
-						Name:     m.nameInput.Value(),
-						Type:     "Логин/Пароль",
-						Login:    m.loginInput.Value(),
-						Password: m.passwordInput.Value(),
-					}
-				}
-			}
-			return m, nil
+			return m, m.attemptAddSecret(m.nameInput.Value(), m.loginInput.Value(), m.passwordInput.Value())
 
 		case "esc":
 			return m, func() tea.Msg {
@@ -168,4 +159,20 @@ func (m LoginSecretModel) renderInputField(label string, input textinput.Model, 
 		styles.InputLabelStyle.Render(label),
 		inputStyle.Render(input.View()),
 	) + "\n"
+}
+
+// attemptAddSecret - метод обработки добавления секрета
+func (m LoginSecretModel) attemptAddSecret(name string, username string, password string) tea.Cmd {
+	return func() tea.Msg {
+		if len(name) == 0 {
+			return messages.ErrorMsg("Необходимо задать имя секрета")
+		}
+		if len(username) == 0 {
+			return messages.ErrorMsg("Необходимо задать пользователя")
+		}
+		if len(password) == 0 {
+			return messages.ErrorMsg("Необходимо задать пароль")
+		}
+		return messages.AddSecretPasswordMsg{Data: messages.SecretPassword{Name: name, Type: models.SecretPasswordType, Login: username, Password: password}}
+	}
 }

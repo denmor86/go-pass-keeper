@@ -1,6 +1,7 @@
 package models
 
 import (
+	"go-pass-keeper/internal/models"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
 
@@ -13,7 +14,7 @@ import (
 type TextSecretModel struct {
 	nameInput  textinput.Model
 	textArea   textarea.Model
-	focused    bool // true - textarea, false - name input
+	focused    bool
 	windowSize tea.WindowSizeMsg
 }
 
@@ -23,12 +24,12 @@ func NewTextSecretModel() TextSecretModel {
 	}
 
 	model.nameInput = textinput.New()
-	model.nameInput.Placeholder = "Название текстового секрета"
+	model.nameInput.Placeholder = "Название"
 	model.nameInput.CharLimit = 50
 	model.nameInput.TextStyle = styles.BlurredStyle
 
 	model.textArea = textarea.New()
-	model.textArea.Placeholder = "Введите ваш секретный текст здесь..."
+	model.textArea.Placeholder = "Введите текст здесь..."
 	model.textArea.SetWidth(50)
 	model.textArea.SetHeight(8)
 
@@ -64,16 +65,7 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 			}
 
 		case "enter":
-			if m.nameInput.Value() != "" && m.textArea.Value() != "" {
-				return m, func() tea.Msg {
-					return messages.SecretAddCompleteMsg{
-						Name:    m.nameInput.Value(),
-						Type:    "Текст",
-						Content: m.textArea.Value(),
-					}
-				}
-			}
-			return m, nil
+			return m, m.attemptAddSecret(m.nameInput.Value(), m.textArea.Value())
 
 		case "esc":
 			return m, func() tea.Msg {
@@ -98,7 +90,7 @@ func (m TextSecretModel) View() string {
 		lipgloss.Center,
 		styles.TitleStyle.
 			Width(40).
-			Render("📝 Текстовый секрет"),
+			Render("📝 Текст"),
 
 		lipgloss.NewStyle().Height(1).Render(""),
 
@@ -158,4 +150,17 @@ func (m TextSecretModel) renderInputField(label string, input textinput.Model) s
 		styles.InputLabelStyle.Render(label),
 		inputStyle.Render(input.View()),
 	) + "\n"
+}
+
+// attemptAddSecret - метод обработки добавления секрета
+func (m TextSecretModel) attemptAddSecret(name string, text string) tea.Cmd {
+	return func() tea.Msg {
+		if len(name) == 0 {
+			return messages.ErrorMsg("Необходимо задать имя секрета")
+		}
+		if len(text) == 0 {
+			return messages.ErrorMsg("Пустой текст секрета")
+		}
+		return messages.AddSecretTextMsg{Data: messages.SecretText{Name: name, Type: models.SecretTextType, Text: text}}
+	}
 }

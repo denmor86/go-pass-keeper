@@ -17,14 +17,14 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 )
 
-// TokenHandler интефрейс для работы с токеном
-type TokenHandler interface {
+// tokenHandler интефрейс для работы с токеном
+type tokenHandler interface {
 	// DecodeUserId - извлечение ID пользователя из токена
 	DecodeUserId(token string) (string, error)
 }
 
 // MakeAuthFunc - метод создания функции авторизации для перехватчика
-func MakeAuthFunc(handler TokenHandler) auth.AuthFunc {
+func MakeAuthFunc(handler tokenHandler) auth.AuthFunc {
 	return func(ctx context.Context) (context.Context, error) {
 		jwt, err := auth.AuthFromMD(ctx, "bearer")
 		if err != nil {
@@ -86,7 +86,7 @@ func InterceptorLogger(l *zap.Logger) logging.Logger {
 }
 
 // CreateUnaryInterceptors - метод для создания перехватчиков обычных запросов
-func CreateUnaryInterceptors(handler TokenHandler) []grpc.UnaryServerInterceptor {
+func CreateUnaryInterceptors(handler tokenHandler) []grpc.UnaryServerInterceptor {
 	return []grpc.UnaryServerInterceptor{
 
 		logging.UnaryServerInterceptor(InterceptorLogger(logger.Get().Desugar())),
@@ -96,7 +96,7 @@ func CreateUnaryInterceptors(handler TokenHandler) []grpc.UnaryServerInterceptor
 }
 
 // CreateStreamInterceptors - метод для создания перехватчиков потоковых запросов
-func CreateStreamInterceptors(handler TokenHandler) []grpc.StreamServerInterceptor {
+func CreateStreamInterceptors(handler tokenHandler) []grpc.StreamServerInterceptor {
 	return []grpc.StreamServerInterceptor{
 		auth.StreamServerInterceptor(MakeAuthFunc(handler)),
 	}

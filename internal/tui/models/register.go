@@ -223,10 +223,10 @@ func (m RegisterModel) attemptRegister(username string, password string, confirm
 		if err := client.Connect(ctx); err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
 		}
-		token, err := client.Register(username, password)
+		token, salt, err := client.Register(username, password)
 		if err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка регистрации пользователя %s: %s", username, err.Error()))
 		}
-		return messages.AuthSuccessMsg{Token: token, Email: username}
+		return messages.AuthSuccessMsg{Token: token, Username: username, Salt: salt}
 	}
 }

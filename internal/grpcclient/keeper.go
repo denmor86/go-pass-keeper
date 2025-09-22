@@ -83,12 +83,12 @@ func (uc *KeeperClient) AddSecret(info *models.SecretInfo, content []byte) (*mod
 	}
 	resp, err := uc.client.AddSecret(uc.ctx,
 		&pb.AddSecretRequest{
-			Meta:    models.SecretInfoToMetadata(info),
+			Meta:    info.ToProtoMetadata(),
 			Content: content},
 	)
 	switch status.Code(err) {
 	case codes.OK:
-		return models.MetadataToSecretInfo(resp.GetMeta()), nil
+		return models.SecretInfoFromProtoMetadata(resp.GetMeta()), nil
 	case codes.Unauthenticated:
 		logger.Warn("User unauthenticated", err.Error())
 		return nil, fmt.Errorf("user unauthenticated")
@@ -99,20 +99,20 @@ func (uc *KeeperClient) AddSecret(info *models.SecretInfo, content []byte) (*mod
 }
 
 // GetSecret - метод получает содержимое секрета пользователя
-func (uc *KeeperClient) GetSecret(sid string) ([]byte, error) {
+func (uc *KeeperClient) GetSecret(sid string) (*models.SecretInfo, []byte, error) {
 	if uc.client == nil {
-		return nil, fmt.Errorf("client not connected")
+		return nil, nil, fmt.Errorf("client not connected")
 	}
 	resp, err := uc.client.GetSecret(uc.ctx, &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: sid}})
 	switch status.Code(err) {
 	case codes.OK:
-		return resp.GetContent(), nil
+		return models.SecretInfoFromProtoMetadata(resp.GetMeta()), resp.GetContent(), nil
 	case codes.Unauthenticated:
 		logger.Warn("User unauthenticated", err.Error())
-		return nil, fmt.Errorf("user unauthenticated")
+		return nil, nil, fmt.Errorf("user unauthenticated")
 	default:
 		logger.Warn("Get secret error", err.Error())
-		return nil, fmt.Errorf("internal error")
+		return nil, nil, fmt.Errorf("internal error")
 	}
 }
 
