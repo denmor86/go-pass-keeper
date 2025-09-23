@@ -57,6 +57,14 @@ func (m SecretAddModel) Update(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	case messages.SecretAddCancelMsg:
 		m.state = SecretTypeSelectState
 		return m, nil
+	case messages.GetSecretPasswordMsg:
+		m.state = LoginPasswordState
+	case messages.GetSecretCardMsg:
+		m.state = BankCardState
+	case messages.GetSecretTextMsg:
+		m.state = TextState
+	case *messages.GetSecretBinaryMsg:
+		m.state = FileState
 	}
 
 	switch m.state {

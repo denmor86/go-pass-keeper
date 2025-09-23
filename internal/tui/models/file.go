@@ -202,7 +202,7 @@ func (m FileSecretModel) renderInputField(label string, input textinput.Model) s
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		styles.InputLabelStyle.Render(label),
-		inputStyle.Render(fieldView),
+		inputStyle.Width(60).Render(fieldView),
 	) + "\n"
 }
 

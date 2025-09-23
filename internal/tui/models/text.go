@@ -204,12 +204,6 @@ func (m TextSecretModel) renderInputField(label string, input textinput.Model) s
 }
 
 func (m TextSecretModel) renderTextArea(area textarea.Model) string {
-	var areaStyle lipgloss.Style
-	if m.isViewMode {
-		areaStyle = styles.InputFieldStyle.Height(8)
-	} else {
-		areaStyle = styles.InputFieldStyle.Height(8)
-	}
 
 	var areaView string
 	if m.isViewMode {
@@ -222,7 +216,7 @@ func (m TextSecretModel) renderTextArea(area textarea.Model) string {
 		areaView = area.View()
 	}
 
-	return areaStyle.Render(areaView)
+	return styles.InputFieldStyle.Width(60).Height(12).Render(areaView)
 }
 
 // attemptAddSecret - метод обработки добавления секрета

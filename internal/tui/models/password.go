@@ -48,8 +48,6 @@ func NewLoginSecretModel() LoginSecretModel {
 	model.passwordInput = textinput.New()
 	model.passwordInput.Placeholder = "Пароль"
 	model.passwordInput.CharLimit = 50
-	model.passwordInput.EchoMode = textinput.EchoPassword
-	model.passwordInput.EchoCharacter = '•'
 	model.passwordInput.TextStyle = styles.BlurredStyle
 	model.passwordInput.PromptStyle = styles.BlurredStyle
 

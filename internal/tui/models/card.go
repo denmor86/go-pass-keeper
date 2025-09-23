@@ -44,8 +44,6 @@ func NewBankCardSecretModel() BankCardSecretModel {
 		case 3:
 			t.Placeholder = "CVV код"
 			t.CharLimit = 3
-			t.EchoMode = textinput.EchoPassword
-			t.EchoCharacter = '•'
 		case 4:
 			t.Placeholder = "Имя владельца"
 		}
@@ -73,24 +71,30 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 		return m, nil
 
 	case messages.GetSecretCardMsg:
-		// Обработка сообщения для отображения данных в режиме просмотра
+		// Переключаемся в режим просмотра при получении данных
 		m.isViewMode = true
 		m.secretData = msg.Data
 
-		// Заполняем поля данными (только для отображения)
+		// Заполняем поля данными для просмотра
 		m.cardInputs[0].SetValue(msg.Data.Name)
 		m.cardInputs[1].SetValue(msg.Data.Number)
 		m.cardInputs[2].SetValue(msg.Data.Date)
 		m.cardInputs[3].SetValue(msg.Data.CVV)
 		m.cardInputs[4].SetValue(msg.Data.Owner)
-
-		// Делаем все поля неактивными в режиме просмотра
-		for i := range m.cardInputs {
-			m.cardInputs[i].Blur()
-		}
 		return m, nil
 
 	case tea.KeyMsg:
+		// В режиме просмотра обрабатываем только ESC
+		if m.isViewMode {
+			switch msg.String() {
+			case "esc":
+				return m, func() tea.Msg {
+					return messages.SecretAddCancelMsg{}
+				}
+			}
+			return m, nil
+		}
+
 		// Режим редактирования
 		switch msg.String() {
 		case "tab", "shift+tab", "up", "down":
@@ -131,15 +135,19 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 				m.cardInputs[4].Value())
 
 		case "esc":
-			m.isViewMode = false
 			return m, func() tea.Msg {
 				return messages.SecretAddCancelMsg{}
 			}
 		}
 	}
 
-	// Обрабатываем ввод ТОЛЬКО для активного поля и только в режиме редактирования
-	if !m.isViewMode && m.focused >= 0 && m.focused < len(m.cardInputs) {
+	// В режиме просмотра игнорируем ввод данных
+	if m.isViewMode {
+		return m, nil
+	}
+
+	// Обрабатываем ввод ТОЛЬКО для активного поля в режиме редактирования
+	if m.focused >= 0 && m.focused < len(m.cardInputs) {
 		var cmd tea.Cmd
 		m.cardInputs[m.focused], cmd = m.cardInputs[m.focused].Update(msg)
 		if cmd != nil {
@@ -151,21 +159,12 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 }
 
 func (m BankCardSecretModel) View() string {
-	// Адаптивная ширина контента
-	contentWidth := m.windowSize.Width - 10
-	if contentWidth > 60 {
-		contentWidth = 60
-	}
-	if contentWidth < 40 {
-		contentWidth = 40
-	}
-
 	fields := []string{
-		m.renderInputField("📝 Имя карты:", m.cardInputs[0], 0, contentWidth),
-		m.renderInputField("💳 Номер карты:", m.cardInputs[1], 1, contentWidth),
-		m.renderInputField("📅 Срок действия:", m.cardInputs[2], 2, contentWidth),
-		m.renderInputField("🔒 CVV код:", m.cardInputs[3], 3, contentWidth),
-		m.renderInputField("👤 Владелец:", m.cardInputs[4], 4, contentWidth),
+		m.renderInputField("📝 Имя карты:", m.cardInputs[0], 0),
+		m.renderInputField("💳 Номер карты:", m.cardInputs[1], 1),
+		m.renderInputField("📅 Срок действия:", m.cardInputs[2], 2),
+		m.renderInputField("🔒 CVV код:", m.cardInputs[3], 3),
+		m.renderInputField("👤 Владелец:", m.cardInputs[4], 4),
 	}
 
 	// Заголовок в зависимости от режима
@@ -174,10 +173,23 @@ func (m BankCardSecretModel) View() string {
 		title = "👁️ Просмотр карты"
 	}
 
+	// Кнопки в зависимости от режима
+	var buttons string
+	if m.isViewMode {
+		buttons = styles.ButtonStyle.Render("ESC - Закрыть")
+	} else {
+		buttons = lipgloss.JoinHorizontal(
+			lipgloss.Center,
+			styles.ButtonStyle.Render("Enter - Сохранить"),
+			styles.DividerStyle.Render(),
+			styles.ButtonStyle.Render("ESC - Отмена"),
+		)
+	}
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		styles.TitleStyle.
-			Width(contentWidth).
+			Width(50).
 			Render(title),
 
 		lipgloss.NewStyle().Height(1).Render(""),
@@ -186,10 +198,9 @@ func (m BankCardSecretModel) View() string {
 
 		lipgloss.NewStyle().Height(1).Render(""),
 
-		m.renderButtons(contentWidth),
+		buttons,
 	)
 
-	// Адаптивное размещение с учетом размера окна
 	return styles.ContainerStyle.
 		Width(m.windowSize.Width).
 		Height(m.windowSize.Height).
@@ -204,66 +215,42 @@ func (m BankCardSecretModel) View() string {
 		)
 }
 
-func (m BankCardSecretModel) renderInputField(label string, input textinput.Model, index int, width int) string {
+func (m BankCardSecretModel) renderInputField(label string, input textinput.Model, index int) string {
 	var inputStyle lipgloss.Style
 	if index == m.focused && !m.isViewMode {
-		inputStyle = styles.FocusedInputFieldStyle.Width(width - 10)
+		inputStyle = styles.FocusedInputFieldStyle
 	} else {
-		inputStyle = styles.InputFieldStyle.Width(width - 10)
+		inputStyle = styles.InputFieldStyle
 	}
 
-	// Для режима просмотра или неактивных полей показываем статическое представление
 	var fieldView string
-	if index == m.focused && !m.isViewMode {
-		fieldView = input.View()
-	} else {
+	if m.isViewMode {
+		// Режим просмотра - показываем статическое значение
 		value := input.Value()
-		if index == 3 && value != "" { // Для CVV поля
-			stars := make([]rune, len(value))
-			for i := range stars {
-				stars[i] = '•'
-			}
-			fieldView = string(stars)
+		fieldView = value
+		if fieldView == "" {
+			fieldView = "не задано"
+		}
+	} else {
+		// Режим редактирования
+		if index == m.focused {
+			// Активное поле - показываем с курсором
+			fieldView = input.View()
 		} else {
+			// Неактивное поле - показываем текущее значение
+			value := input.Value()
 			fieldView = value
 			if fieldView == "" {
-				fieldView = "не задано"
+				fieldView = input.Placeholder
 			}
 		}
 	}
 
-	// Ограничиваем длину текста для лучшего отображения
-	if len(fieldView) > width-15 {
-		fieldView = fieldView[:width-15] + "..."
-	}
-
-	fieldContent := lipgloss.JoinVertical(
+	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		styles.InputLabelStyle.Width(width-10).Render(label),
+		styles.InputLabelStyle.Render(label),
 		inputStyle.Render(fieldView),
-	)
-
-	return lipgloss.NewStyle().
-		Width(width).
-		Render(fieldContent) + "\n"
-}
-
-func (m BankCardSecretModel) renderButtons(width int) string {
-	if m.isViewMode {
-		return lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			styles.ButtonStyle.Render("ESC - Назад"),
-		)
-	}
-
-	buttons := lipgloss.JoinHorizontal(
-		lipgloss.Center,
-		styles.ButtonStyle.Render("Enter - Сохранить"),
-		styles.DividerStyle.Render(),
-		styles.ButtonStyle.Render("ESC - Отмена"),
-	)
-
-	return lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render(buttons)
+	) + "\n"
 }
 
 // attemptAddSecret - метод обработки добавления секрета
@@ -284,6 +271,15 @@ func (m BankCardSecretModel) attemptAddSecret(name string, number string, date s
 		if len(owner) == 0 {
 			return messages.ErrorMsg("Необходимо задать владельца карты")
 		}
-		return messages.AddSecretCardMsg{Data: messages.SecretCard{Name: name, Type: models.SecretCardType, Number: number, CVV: cvv, Date: date, Owner: owner}}
+		return messages.AddSecretCardMsg{
+			Data: messages.SecretCard{
+				Name:   name,
+				Type:   models.SecretCardType,
+				Number: number,
+				CVV:    cvv,
+				Date:   date,
+				Owner:  owner,
+			},
+		}
 	}
 }

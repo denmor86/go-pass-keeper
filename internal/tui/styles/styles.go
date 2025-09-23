@@ -44,7 +44,7 @@ var (
 			Margin(0, 1).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(SurfaceColor).
-			Width(24).
+			Width(25).
 			Height(3).
 			Align(lipgloss.Center).
 			AlignVertical(lipgloss.Center)
@@ -101,7 +101,7 @@ var (
 
 	// Стили для полей ввода
 	InputFieldStyle = lipgloss.NewStyle().
-			Width(32).
+			Width(25).
 			Height(2).
 			Padding(0, 1).
 			Background(SurfaceColor).
@@ -114,18 +114,17 @@ var (
 				Foreground(TextPrimary)
 
 	InputLabelStyle = lipgloss.NewStyle().
-			Foreground(TextSecondary).
-			MarginBottom(1)
+			Foreground(TextSecondary)
 
 	// Стили для разделителей
 	DividerStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#444")).
+			Foreground(lipgloss.Color(BackgroundColor)).
 			SetString("•").
 			Padding(0, 2)
 
 	TableStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color("240")).
+			BorderForeground(AccentColor).
 			Padding(0, 1)
 
 	TableHeaderStyle = lipgloss.NewStyle().

@@ -225,8 +225,8 @@ func (m ViewerModel) View() string {
 
 func createTable() table.Model {
 	columns := []table.Column{
-		{Title: "ID", Width: 4},
-		{Title: "Название", Width: 20},
+		{Title: "ID", Width: 8},
+		{Title: "Название", Width: 30},
 		{Title: "Тип", Width: 12},
 		{Title: "Создан", Width: 12},
 		{Title: "Обновлен", Width: 12},
@@ -411,14 +411,14 @@ func (m ViewerModel) attemptAddSecret(converter messages.EncryptConverter) tea.C
 // attemptGetSecret - обработчик получения секрета
 func (m ViewerModel) attemptGetSecret(sid string) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
-		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.settings.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.settings.ServerAddress(), m.token)
 		defer func() {
 			cancel()
 			client.Close()
 		}()
 		if err := client.Connect(ctx); err != nil {
-			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.settings.ServerAddress(), err.Error()))
 		}
 		info, content, err := client.GetSecret(sid)
 		if err != nil {
