@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"go-pass-keeper/internal/models"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
@@ -44,11 +45,11 @@ func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.S
 
 func (s *SecretStorage) Get(ctx context.Context, sid uuid.UUID) (*models.SecretData, error) {
 	const query = `
-		SELECT id, type_secret, name, content FROM secrets
+		SELECT id, type_secret, name, content, created_at, updated_at FROM secrets
 		WHERE id = $1;
 `
 	m := &models.SecretData{}
-	err := s.db.Pool.QueryRow(ctx, query, sid.String()).Scan(&m.ID, &m.Type, &m.Name, &m.Content)
+	err := s.db.Pool.QueryRow(ctx, query, sid.String()).Scan(&m.ID, &m.Type, &m.Name, &m.Content, &m.Created, &m.Updated)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -77,7 +78,7 @@ func (s *SecretStorage) Delete(ctx context.Context, sid uuid.UUID) error {
 // List - метод возвращает список секретов пользователя
 func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.SecretData, error) {
 	const SQL = `
-		SELECT id, user_id, type_secret, name FROM secrets
+		SELECT id, user_id, type_secret, name, created_at, updated_at FROM secrets
 		WHERE user_id = $1 ORDER BY name
 `
 	rows, err := s.db.Pool.Query(ctx, SQL, uid)
@@ -95,21 +96,27 @@ func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.Secr
 			user_id     uuid.UUID
 			type_secret string
 			name        string
+			created     time.Time
+			updated     time.Time
 		)
 		err := rows.Scan(
 			&id,
 			&user_id,
 			&type_secret,
 			&name,
+			&created,
+			&updated,
 		)
 		if err != nil {
 			return res, fmt.Errorf("failed scan secret data: %w", err)
 		}
 		res = append(res, &models.SecretData{
-			ID:     id,
-			UserID: user_id,
-			Name:   name,
-			Type:   type_secret})
+			ID:      id,
+			UserID:  user_id,
+			Name:    name,
+			Type:    type_secret,
+			Created: created,
+			Updated: updated})
 	}
 
 	return res, nil
