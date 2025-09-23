@@ -30,7 +30,7 @@ type GetSecretPasswordMsg struct {
 	Data SecretPassword
 }
 
-// ToModel - метод формирует информацию о секрете и расшифрованный контент
+// ToModel - метод формирует информацию о секрете и шифрованный контент
 func (msg *AddSecretPasswordMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
 
 	secret := models.NewSecretPassword(msg.Data.Login, msg.Data.Password)
@@ -41,7 +41,7 @@ func (msg *AddSecretPasswordMsg) ToModel(key []byte) (*models.SecretInfo, []byte
 	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
 }
 
-// FromModel - метод формирует информацию о секрете, шифрованный контент и формирует сообщение
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
 func (msg *GetSecretPasswordMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
 	secret := &models.SecretPassword{}
 	err := secret.Decrypt(key, content)
@@ -83,7 +83,7 @@ func (msg *AddSecretCardMsg) ToModel(key []byte) (*models.SecretInfo, []byte, er
 	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
 }
 
-// FromModel - метод формирует информацию о секрете, шифрованный контент и формирует сообщение
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
 func (msg *GetSecretCardMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
 	secret := &models.SecretCard{}
 	err := secret.Decrypt(key, content)
@@ -122,7 +122,7 @@ func (msg *AddSecretTextMsg) ToModel(key []byte) (*models.SecretInfo, []byte, er
 	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
 }
 
-// FromModel - метод формирует информацию о секрете, шифрованный контент и формирует сообщение
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
 func (msg *GetSecretTextMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
 	secret := &models.SecretText{}
 	err := secret.Decrypt(key, content)
@@ -161,7 +161,7 @@ func (msg *AddSecretBinaryMsg) ToModel(key []byte) (*models.SecretInfo, []byte, 
 	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
 }
 
-// FromModel - метод формирует информацию о секрете, шифрованный контент и формирует сообщение
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
 func (msg *GetSecretBinaryMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
 	secret := &models.SecretBinary{}
 	err := secret.Decrypt(key, content)

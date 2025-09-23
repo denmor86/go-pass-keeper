@@ -48,7 +48,7 @@ func (s *Keeper) AddSecret(ctx context.Context, request *pb.AddSecretRequest) (*
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: m.Name, Type: m.Type}}, nil
+	return &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: m.Name, Type: m.Type, Created: timestamppb.New(secret.Created), Updated: timestamppb.New(secret.Updated)}}, nil
 }
 
 // GetSecret - метод для получения секрета пользователя
@@ -68,7 +68,7 @@ func (s *Keeper) GetSecret(ctx context.Context, request *pb.GetSecretRequest) (*
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: secret.Name, Type: secret.Type}, Content: secret.Content}, nil
+	return &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: secret.Name, Type: secret.Type, Created: timestamppb.New(secret.Created), Updated: timestamppb.New(secret.Updated)}, Content: secret.Content}, nil
 }
 
 // DeleteSecret - метод удаления секрета пользователя
