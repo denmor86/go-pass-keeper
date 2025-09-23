@@ -106,6 +106,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.username = msg.Username
 		m.token = msg.Token
 		m.viewport.SetContent(fmt.Sprintf("Приветствуем, %s!\n\nВы успешно вошли в систему.\n", m.username))
+		return m.handleSecretUpdate(msg)
 
 	case messages.ErrorMsg:
 		switch m.state {

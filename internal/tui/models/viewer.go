@@ -54,7 +54,6 @@ func NewViewerModel(connection *settings.Connection) ViewerModel {
 		connection: connection,
 	}
 }
-
 func (m ViewerModel) Init() tea.Cmd {
 	return m.attemptGetSecrets()
 }
@@ -64,23 +63,12 @@ func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		return m.updateWindowsSize(msg)
 
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC:
-			return m, tea.Quit
-		case tea.KeyEsc:
-			// Обработка ESC в зависимости от текущего состояния
-			switch m.state {
-			case ViewerListState:
-				// Возврат на главный экран
-				return m, func() tea.Msg { return messages.GotoMainPageMsg{} }
-			case SecretViewState, SecretAddState:
-				m.state = ViewerListState
-				return m, nil
-			}
-		}
+	case messages.SecretAddCancelMsg:
+		m.state = ViewerListState
+		return m.handleAddState(msg)
+
 	case messages.AuthSuccessMsg:
-		return m, m.handleAuthAction(msg)
+		return m.handleAuthAction(msg)
 
 	case messages.AddSecretPasswordMsg:
 		m.state = ViewerListState
@@ -90,9 +78,17 @@ func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 		m.state = ViewerListState
 		return m, m.attemptAddSecret(&msg)
 
+	case messages.AddSecretTextMsg:
+		m.state = ViewerListState
+		return m, m.attemptAddSecret(&msg)
+
+	case messages.AddSecretBinaryMsg:
+		m.state = ViewerListState
+		return m, m.attemptAddSecret(&msg)
+
 	case messages.SecretRefreshMsg:
 		m.secrets = msg.Secrets
-		m.refreshViewer()
+		return m.refreshViewer(), nil
 	}
 
 	switch m.state {
@@ -139,9 +135,10 @@ func (m ViewerModel) handleListState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 
 		case "enter": // Обработка действий
 			return m.handleEnterAction()
-
 		case "esc": // Выход из секретов
-			return m, nil
+			return m, func() tea.Msg {
+				return messages.GotoMainPageMsg{}
+			}
 		}
 	}
 
@@ -174,6 +171,11 @@ func (m ViewerModel) handleEnterAction() (ViewerModel, tea.Cmd) {
 		m.state = SecretAddState
 		return m, m.addModel.Init()
 	}
+	// Если выбрана кнопка "Обновить"
+	if m.focusedBtn == UpdateButton {
+		return m, m.attemptGetSecrets()
+	}
+
 	if len(m.table.Rows()) == 0 {
 		return m, nil
 	}
@@ -195,11 +197,19 @@ func (m ViewerModel) handleEnterAction() (ViewerModel, tea.Cmd) {
 		return m, m.attemptDeleteSecret(selectedID)
 	}
 
-	// Если выбрана кнопка "Обновить"
-	if m.focusedBtn == UpdateButton {
-		return m, m.attemptGetSecrets()
-	}
+	return m, nil
+}
 
+// handleAuthAction - обработчик добавления секрета
+func (m ViewerModel) handleAuthAction(msg messages.AuthSuccessMsg) (ViewerModel, tea.Cmd) {
+	m.token = msg.Token
+	key, err := crypto.MakeCryptoKey("secret", msg.Salt)
+	if err != nil {
+		return m, func() tea.Msg {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка формирования ключа: %s", err.Error()))
+		}
+	}
+	m.cryptoKey = key
 	return m, nil
 }
 
@@ -481,18 +491,5 @@ func (m ViewerModel) attemptGetSecret(sid string) tea.Cmd {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка добавления секрета: %s", err.Error()))
 		}
 		return messages.ToMessage(m.cryptoKey, info, content)
-	}
-}
-
-// attemptAddSecret - обработчик добавления секрета
-func (m ViewerModel) handleAuthAction(msg messages.AuthSuccessMsg) tea.Cmd {
-	return func() tea.Msg {
-		m.token = msg.Token
-		key, err := crypto.MakeCryptoKey("secret", msg.Salt)
-		if err != nil {
-			return messages.ErrorMsg(fmt.Sprintf("Ошибка формирования ключа: %s", err.Error()))
-		}
-		m.cryptoKey = key
-		return messages.SecretUpdateMsg{}
 	}
 }

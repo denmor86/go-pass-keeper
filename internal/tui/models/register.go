@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// LoginModel - модель окна регистрации пользователя
+// RegisterModel - модель окна регистрации пользователя
 type RegisterModel struct {
 	inputs     []textinput.Model
 	focused    int

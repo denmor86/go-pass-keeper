@@ -34,7 +34,6 @@ func NewLoginModel(connection *settings.Connection) LoginModel {
 		t := textinput.New()
 		t.Cursor.Style = styles.FocusedStyle
 		t.CharLimit = 32
-		t.TextStyle = styles.BlurredStyle
 
 		switch i {
 		case 0:
@@ -42,11 +41,14 @@ func NewLoginModel(connection *settings.Connection) LoginModel {
 			t.PlaceholderStyle = styles.BlurredStyle
 			t.Focus()
 			t.PromptStyle = styles.FocusedStyle
+			t.TextStyle = styles.FocusedStyle
 		case 1:
 			t.Placeholder = "Введите пароль"
 			t.EchoMode = textinput.EchoPassword
 			t.EchoCharacter = '•'
 			t.PlaceholderStyle = styles.BlurredStyle
+			t.PromptStyle = styles.BlurredStyle
+			t.TextStyle = styles.BlurredStyle
 		}
 
 		login.inputs[i] = t
@@ -71,14 +73,9 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "tab", "shift+tab", "enter", "up", "down":
+		case "tab", "shift+tab", "up", "down":
+			// Сначала обрабатываем навигацию
 			s := msg.String()
-
-			if s == "enter" {
-				username := m.inputs[0].Value()
-				password := m.inputs[1].Value()
-				return m, m.attemptLogin(username, password)
-			}
 
 			if s == "up" || s == "shift+tab" {
 				m.focused--
@@ -92,26 +89,41 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 				m.focused = len(m.inputs) - 1
 			}
 
+			// Обновляем фокус только для активного поля
 			for i := range m.inputs {
 				if i == m.focused {
 					cmds = append(cmds, m.inputs[i].Focus())
 					m.inputs[i].PromptStyle = styles.FocusedStyle
 					m.inputs[i].TextStyle = styles.FocusedStyle
-					continue
+				} else {
+					m.inputs[i].Blur()
+					m.inputs[i].PromptStyle = styles.BlurredStyle
+					m.inputs[i].TextStyle = styles.BlurredStyle
 				}
-				m.inputs[i].Blur()
-				m.inputs[i].PromptStyle = styles.BlurredStyle
-				m.inputs[i].TextStyle = styles.BlurredStyle
 			}
 
 			return m, tea.Batch(cmds...)
+
+		case "enter":
+			username := m.inputs[0].Value()
+			password := m.inputs[1].Value()
+			return m, m.attemptLogin(username, password)
+
+		case "esc":
+			return m, func() tea.Msg {
+				return messages.GotoMainPageMsg{}
+			}
 		}
 	}
 
-	for i := range m.inputs {
+	// Ключевое изменение: обрабатываем ввод ТОЛЬКО для активного поля
+	// и НЕ обрабатываем для остальных полей
+	if m.focused >= 0 && m.focused < len(m.inputs) {
 		var cmd tea.Cmd
-		m.inputs[i], cmd = m.inputs[i].Update(msg)
-		cmds = append(cmds, cmd)
+		m.inputs[m.focused], cmd = m.inputs[m.focused].Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -137,10 +149,32 @@ func (m LoginModel) View() string {
 			fieldName = "🔒 Пароль"
 		}
 
+		// Для неактивных полей показываем только значение, без курсора и т.д.
+		var fieldView string
+		if i == m.focused {
+			fieldView = m.inputs[i].View()
+		} else {
+			// Для неактивного поля создаем "статическое" представление
+			value := m.inputs[i].Value()
+			if i == 1 && value != "" {
+				// Для пароля показываем звездочки
+				stars := make([]rune, len(value))
+				for j := range stars {
+					stars[j] = '•'
+				}
+				fieldView = string(stars)
+			} else {
+				fieldView = value
+				if fieldView == "" {
+					fieldView = " "
+				}
+			}
+		}
+
 		fields[i] = lipgloss.JoinVertical(
 			lipgloss.Left,
 			styles.InputLabelStyle.Render(fieldName),
-			inputStyle.Render(m.inputs[i].View()),
+			inputStyle.Render(fieldView),
 		)
 	}
 

@@ -53,7 +53,12 @@ func (m SecretAddModel) Update(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		return m.updateWindowsSize(msg)
+
+	case messages.SecretAddCancelMsg:
+		m.state = SecretTypeSelectState
+		return m, nil
 	}
+
 	switch m.state {
 	case SecretTypeSelectState:
 		return m.updateTypeSelect(msg)

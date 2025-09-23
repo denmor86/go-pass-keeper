@@ -27,11 +27,13 @@ func NewLoginSecretModel() LoginSecretModel {
 	model.nameInput.Placeholder = "Название аккаунта"
 	model.nameInput.CharLimit = 50
 	model.nameInput.TextStyle = styles.BlurredStyle
+	model.nameInput.PromptStyle = styles.FocusedStyle
 
 	model.loginInput = textinput.New()
 	model.loginInput.Placeholder = "Логин или email"
 	model.loginInput.CharLimit = 50
 	model.loginInput.TextStyle = styles.BlurredStyle
+	model.loginInput.PromptStyle = styles.BlurredStyle
 
 	model.passwordInput = textinput.New()
 	model.passwordInput.Placeholder = "Пароль"
@@ -39,6 +41,7 @@ func NewLoginSecretModel() LoginSecretModel {
 	model.passwordInput.EchoMode = textinput.EchoPassword
 	model.passwordInput.EchoCharacter = '•'
 	model.passwordInput.TextStyle = styles.BlurredStyle
+	model.passwordInput.PromptStyle = styles.BlurredStyle
 
 	model.nameInput.Focus()
 
@@ -62,6 +65,16 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 		case "tab", "shift+tab", "up", "down":
 			s := msg.String()
 
+			m.nameInput.Blur()
+			m.loginInput.Blur()
+			m.passwordInput.Blur()
+			m.nameInput.PromptStyle = styles.BlurredStyle
+			m.nameInput.TextStyle = styles.BlurredStyle
+			m.loginInput.PromptStyle = styles.BlurredStyle
+			m.loginInput.TextStyle = styles.BlurredStyle
+			m.passwordInput.PromptStyle = styles.BlurredStyle
+			m.passwordInput.TextStyle = styles.BlurredStyle
+
 			if s == "up" || s == "shift+tab" {
 				m.focused--
 			} else {
@@ -74,13 +87,20 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 				m.focused = 2
 			}
 
+			// Устанавливаем фокус только на активное поле
 			switch m.focused {
 			case 0:
 				cmds = append(cmds, m.nameInput.Focus())
+				m.nameInput.PromptStyle = styles.FocusedStyle
+				m.nameInput.TextStyle = styles.FocusedStyle
 			case 1:
 				cmds = append(cmds, m.loginInput.Focus())
+				m.loginInput.PromptStyle = styles.FocusedStyle
+				m.loginInput.TextStyle = styles.FocusedStyle
 			case 2:
 				cmds = append(cmds, m.passwordInput.Focus())
+				m.passwordInput.PromptStyle = styles.FocusedStyle
+				m.passwordInput.TextStyle = styles.FocusedStyle
 			}
 			return m, tea.Batch(cmds...)
 
@@ -93,14 +113,19 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 			}
 		}
 	}
-
 	var cmd tea.Cmd
-	m.nameInput, cmd = m.nameInput.Update(msg)
-	cmds = append(cmds, cmd)
-	m.loginInput, cmd = m.loginInput.Update(msg)
-	cmds = append(cmds, cmd)
-	m.passwordInput, cmd = m.passwordInput.Update(msg)
-	cmds = append(cmds, cmd)
+	switch m.focused {
+	case 0:
+		m.nameInput, cmd = m.nameInput.Update(msg)
+	case 1:
+		m.loginInput, cmd = m.loginInput.Update(msg)
+	case 2:
+		m.passwordInput, cmd = m.passwordInput.Update(msg)
+	}
+
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -154,10 +179,29 @@ func (m LoginSecretModel) renderInputField(label string, input textinput.Model, 
 		inputStyle = styles.InputFieldStyle
 	}
 
+	var fieldView string
+	if index == m.focused {
+		fieldView = input.View()
+	} else {
+		value := input.Value()
+		if index == 2 && value != "" {
+			stars := make([]rune, len(value))
+			for i := range stars {
+				stars[i] = '•'
+			}
+			fieldView = string(stars)
+		} else {
+			fieldView = value
+			if fieldView == "" {
+				fieldView = " "
+			}
+		}
+	}
+
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		styles.InputLabelStyle.Render(label),
-		inputStyle.Render(input.View()),
+		inputStyle.Render(fieldView),
 	) + "\n"
 }
 
