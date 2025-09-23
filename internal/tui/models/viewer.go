@@ -33,16 +33,15 @@ const (
 )
 
 type ViewerModel struct {
-	state          ViewerState
-	table          table.Model
-	secrets        []*models.SecretInfo
-	windowSize     tea.WindowSizeMsg
-	focusedBtn     int
-	addModel       SecretAddModel
-	selectedSecret *models.SecretInfo
-	connection     *settings.Connection
-	token          string
-	cryptoKey      []byte
+	state      ViewerState
+	table      table.Model
+	secrets    []*models.SecretInfo
+	windowSize tea.WindowSizeMsg
+	focusedBtn int
+	addModel   SecretAddModel
+	connection *settings.Connection
+	token      string
+	cryptoKey  []byte
 }
 
 func NewViewerModel(connection *settings.Connection) ViewerModel {
@@ -180,16 +179,11 @@ func (m ViewerModel) handleEnterAction() (ViewerModel, tea.Cmd) {
 		return m, nil
 	}
 	selectedID := m.table.SelectedRow()[0]
-	for i := range m.secrets {
-		if m.secrets[i].ID == selectedID {
-			m.selectedSecret = m.secrets[i]
-			m.state = SecretViewState
-			return m, nil
-		}
-	}
+
 	// Если выбрана кнопка "Просмотр" И есть выбранная строка
 	if m.focusedBtn == ViewButton && m.table.SelectedRow() != nil {
-		return m, nil
+		m.state = SecretAddState
+		return m, m.attemptGetSecret(selectedID)
 	}
 
 	// Если выбрана кнопка "Удалить" и есть выбранная строка
@@ -222,8 +216,6 @@ func (m ViewerModel) View() string {
 	switch m.state {
 	case ViewerListState:
 		return m.renderViewerListView()
-	case SecretViewState:
-		return m.renderSecretView()
 	case SecretAddState:
 		return m.addModel.View()
 	default:
@@ -350,64 +342,6 @@ func (m ViewerModel) renderHelpText() string {
 		Foreground(styles.TextSecondary).
 		Italic(true).
 		Render(helpText)
-}
-
-func (m ViewerModel) renderSecretView() string {
-	if m.selectedSecret == nil {
-		return "Ошибка: секрет не выбран"
-	}
-
-	secret := m.selectedSecret
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		styles.TitleStyle.
-			Width(40).
-			Render("👁️ Просмотр секрета"),
-
-		lipgloss.NewStyle().Height(2).Render(""),
-
-		lipgloss.JoinVertical(
-			lipgloss.Left,
-			m.renderSecretField("ID:", secret.ID),
-			m.renderSecretField("Название:", secret.Name),
-			m.renderSecretField("Тип:", secret.Type),
-			m.renderSecretField("Создан:", secret.Created.Local().Format(time.UnixDate)),
-			m.renderSecretField("Обновлен:", secret.Updated.Local().Format(time.UnixDate)),
-		),
-
-		lipgloss.NewStyle().Height(2).Render(""),
-
-		styles.ButtonStyle.
-			Width(20).
-			Render("ESC: Назад к списку"),
-	)
-
-	return styles.ContainerStyle.
-		Width(m.windowSize.Width).
-		Height(m.windowSize.Height).
-		Render(
-			lipgloss.Place(
-				m.windowSize.Width, m.windowSize.Height,
-				lipgloss.Center, lipgloss.Center,
-				content,
-				lipgloss.WithWhitespaceChars(" "),
-				lipgloss.WithWhitespaceForeground(styles.BackgroundColor),
-			),
-		)
-}
-
-func (m ViewerModel) renderSecretField(label, value string) string {
-	return lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		lipgloss.NewStyle().
-			Foreground(styles.TextSecondary).
-			Width(12).
-			Render(label),
-		lipgloss.NewStyle().
-			Foreground(styles.TextPrimary).
-			Bold(true).
-			Render(value),
-	) + "\n"
 }
 
 // attemptGetSecrets - обработчик получения секретов
