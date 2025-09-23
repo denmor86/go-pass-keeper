@@ -39,18 +39,18 @@ type ViewerModel struct {
 	windowSize tea.WindowSizeMsg
 	focusedBtn int
 	addModel   SecretAddModel
-	connection *settings.Connection
+	settings   *settings.Settings
 	token      string
 	cryptoKey  []byte
 }
 
-func NewViewerModel(connection *settings.Connection) ViewerModel {
+func NewViewerModel(connection *settings.Settings) ViewerModel {
 	return ViewerModel{
 		state:      ViewerListState,
 		table:      createTable(),
 		focusedBtn: 0,
 		addModel:   NewSecretAddModel(),
-		connection: connection,
+		settings:   connection,
 	}
 }
 func (m ViewerModel) Init() tea.Cmd {
@@ -347,14 +347,14 @@ func (m ViewerModel) renderHelpText() string {
 // attemptGetSecrets - обработчик получения секретов
 func (m ViewerModel) attemptGetSecrets() tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
-		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.settings.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.settings.ServerAddress(), m.token)
 		defer func() {
 			cancel()
 			client.Close()
 		}()
 		if err := client.Connect(ctx); err != nil {
-			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.settings.ServerAddress(), err.Error()))
 		}
 		secrets, err := client.GetSecrets()
 		if err != nil {
@@ -367,14 +367,14 @@ func (m ViewerModel) attemptGetSecrets() tea.Cmd {
 // attemptDeleteSecret - обработчик удаления секрета
 func (m ViewerModel) attemptDeleteSecret(sid string) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
-		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.settings.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.settings.ServerAddress(), m.token)
 		defer func() {
 			cancel()
 			client.Close()
 		}()
 		if err := client.Connect(ctx); err != nil {
-			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.settings.ServerAddress(), err.Error()))
 		}
 		id, err := client.DeleteSecret(sid)
 		if err != nil {
@@ -391,14 +391,14 @@ func (m ViewerModel) attemptAddSecret(converter messages.EncryptConverter) tea.C
 		if err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка добавления секрета: %s", err.Error()))
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.connection.Timeout)*time.Second)
-		client := grpcclient.NewKeeperClient(m.connection.ServerAddress(), m.token)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.settings.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.settings.ServerAddress(), m.token)
 		defer func() {
 			cancel()
 			client.Close()
 		}()
 		if err := client.Connect(ctx); err != nil {
-			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.connection.ServerAddress(), err.Error()))
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.settings.ServerAddress(), err.Error()))
 		}
 		_, err = client.AddSecret(info, content)
 		if err != nil {

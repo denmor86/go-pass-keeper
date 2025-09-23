@@ -20,11 +20,11 @@ type RegisterModel struct {
 	focused    int
 	err        messages.ErrorMsg
 	windowSize tea.WindowSizeMsg
-	connection *settings.Connection
+	connection *settings.Settings
 }
 
 // NewLoginModel - метод для создания окна регистрации пользователя
-func NewRegisterModel(connection *settings.Connection) RegisterModel {
+func NewRegisterModel(connection *settings.Settings) RegisterModel {
 	register := RegisterModel{
 		inputs:     make([]textinput.Model, 3),
 		connection: connection,

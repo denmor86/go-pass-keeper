@@ -20,11 +20,11 @@ type LoginModel struct {
 	focused    int
 	err        messages.ErrorMsg
 	windowSize tea.WindowSizeMsg
-	connection *settings.Connection
+	connection *settings.Settings
 }
 
 // NewLoginModel - метод для создания окна авторизации пользователя
-func NewLoginModel(connection *settings.Connection) LoginModel {
+func NewLoginModel(connection *settings.Settings) LoginModel {
 	login := LoginModel{
 		inputs:     make([]textinput.Model, 2),
 		connection: connection,

@@ -17,13 +17,13 @@ func NewConfig(appName string) *Config {
 	return &Config{configPath: configPath}
 }
 
-func (cm *Config) Load() *settings.Connection {
+func (cm *Config) Load() *settings.Settings {
 	data, err := os.ReadFile(cm.configPath)
 	if err != nil {
 		return cm.DefaultConfig()
 	}
 
-	var config settings.Connection
+	var config settings.Settings
 	if json.Unmarshal(data, &config) != nil {
 		return cm.DefaultConfig()
 	}
@@ -31,7 +31,7 @@ func (cm *Config) Load() *settings.Connection {
 	return &config
 }
 
-func (cm *Config) Save(config *settings.Connection) error {
+func (cm *Config) Save(config *settings.Settings) error {
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
@@ -41,8 +41,8 @@ func (cm *Config) Save(config *settings.Connection) error {
 	return os.WriteFile(cm.configPath, data, 0644)
 }
 
-func (cm *Config) DefaultConfig() *settings.Connection {
-	return &settings.Connection{
+func (cm *Config) DefaultConfig() *settings.Settings {
+	return &settings.Settings{
 		ServerURL:  "localhost",
 		ServerPort: "8080",
 		Timeout:    30,

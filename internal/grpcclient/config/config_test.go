@@ -28,7 +28,7 @@ func TestConfig(t *testing.T) {
 	})
 
 	t.Run("SaveAndLoad", func(t *testing.T) {
-		testConfig := &settings.Connection{
+		testConfig := &settings.Settings{
 			ServerURL:  "example.com",
 			ServerPort: "9000",
 			Timeout:    60,

@@ -17,11 +17,11 @@ type SettingsModel struct {
 	inputs     []textinput.Model
 	focused    int
 	windowSize tea.WindowSizeMsg
-	connection *settings.Connection
+	connection *settings.Settings
 }
 
 // NewSettingsModel - метод для создания окна настроек
-func NewSettingsModel(connection *settings.Connection) SettingsModel {
+func NewSettingsModel(connection *settings.Settings) SettingsModel {
 	model := SettingsModel{
 		inputs:     make([]textinput.Model, 3),
 		connection: connection,
@@ -76,7 +76,7 @@ func (m SettingsModel) Update(msg tea.Msg) (SettingsModel, tea.Cmd) {
 
 			if s == "enter" {
 				// Сохраняем настройки
-				newConnection := settings.Connection{
+				newConnection := settings.Settings{
 					ServerURL:  m.inputs[0].Value(),
 					ServerPort: m.inputs[1].Value(),
 				}
@@ -154,7 +154,7 @@ func (m SettingsModel) View() string {
 		lipgloss.Center,
 		styles.TitleStyle.
 			Width(50).
-			Render("⚙️ Настройки подключения"),
+			Render("⚙️ Настройки"),
 
 		lipgloss.NewStyle().Height(1).Render(""),
 

@@ -4,13 +4,14 @@ import (
 	"fmt"
 )
 
-// Connection - модель настроек подключения
-type Connection struct {
+// Settings - модель настроек подключения
+type Settings struct {
 	ServerURL  string `json:"server_url"`
 	ServerPort string `json:"server_port"`
 	Timeout    int    `json:"timeout"`
+	secret     string // не сохраняем для секурности
 }
 
-func (s *Connection) ServerAddress() string {
+func (s *Settings) ServerAddress() string {
 	return fmt.Sprintf("%s:%s", s.ServerURL, s.ServerPort)
 }
