@@ -63,7 +63,7 @@ func (m SecretAddModel) Update(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 		m.state = BankCardState
 	case messages.GetSecretTextMsg:
 		m.state = TextState
-	case *messages.GetSecretBinaryMsg:
+	case messages.GetSecretBinaryMsg:
 		m.state = FileState
 	}
 

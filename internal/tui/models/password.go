@@ -20,7 +20,6 @@ type LoginSecretModel struct {
 	secretData    messages.SecretPassword // Данные для просмотра
 }
 
-// Константы для индексов полей с понятными названиями
 const (
 	fieldNameIndex = iota
 	fieldLoginIndex
@@ -231,35 +230,18 @@ func (m LoginSecretModel) renderInputField(label string, input textinput.Model, 
 
 	var fieldView string
 	if m.isViewMode {
-		// В режиме просмотра показываем звездочки для пароля
 		value := input.Value()
-		if index == fieldPasswordIndex && value != "" {
-			stars := make([]rune, len(value))
-			for i := range stars {
-				stars[i] = '•'
-			}
-			fieldView = string(stars)
-		} else {
-			fieldView = value
-			if fieldView == "" {
-				fieldView = " "
-			}
+		fieldView = value
+		if fieldView == "" {
+			fieldView = " "
 		}
 	} else if index == m.focused {
 		fieldView = input.View()
 	} else {
 		value := input.Value()
-		if index == fieldPasswordIndex && value != "" {
-			stars := make([]rune, len(value))
-			for i := range stars {
-				stars[i] = '•'
-			}
-			fieldView = string(stars)
-		} else {
-			fieldView = value
-			if fieldView == "" {
-				fieldView = " "
-			}
+		fieldView = value
+		if fieldView == "" {
+			fieldView = " "
 		}
 	}
 

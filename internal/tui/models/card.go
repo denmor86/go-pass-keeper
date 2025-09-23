@@ -135,6 +135,7 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 				m.cardInputs[4].Value())
 
 		case "esc":
+			m.isViewMode = false
 			return m, func() tea.Msg {
 				return messages.SecretAddCancelMsg{}
 			}

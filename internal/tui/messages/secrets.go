@@ -178,28 +178,28 @@ func (msg *GetSecretBinaryMsg) FromModel(key []byte, info *models.SecretInfo, co
 func ToMessage(key []byte, info *models.SecretInfo, content []byte) tea.Msg {
 	switch info.Type {
 	case models.SecretPasswordType:
-		msg := &GetSecretPasswordMsg{}
+		msg := GetSecretPasswordMsg{}
 		err := msg.FromModel(key, info, content)
 		if err != nil {
 			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
 		}
 		return msg
 	case models.SecretCardType:
-		msg := &GetSecretCardMsg{}
+		msg := GetSecretCardMsg{}
 		err := msg.FromModel(key, info, content)
 		if err != nil {
 			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
 		}
 		return msg
 	case models.SecretTextType:
-		msg := &GetSecretTextMsg{}
+		msg := GetSecretTextMsg{}
 		err := msg.FromModel(key, info, content)
 		if err != nil {
 			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
 		}
 		return msg
 	case models.SecretBinaryType:
-		msg := &GetSecretBinaryMsg{}
+		msg := GetSecretBinaryMsg{}
 		err := msg.FromModel(key, info, content)
 		if err != nil {
 			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
