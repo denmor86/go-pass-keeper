@@ -25,7 +25,7 @@ func NewSecretStorage(db *Database) *SecretStorage {
 // Add - метод добавляет секрет пользователя в хранилище
 func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.SecretData) (*models.SecretData, error) {
 	const query = `
-		INSERT INTO secrets (user_id, type, name, content)
+		INSERT INTO secrets (user_id, type_secret, name, content)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at
 `
@@ -44,7 +44,7 @@ func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.S
 
 func (s *SecretStorage) Get(ctx context.Context, sid uuid.UUID) (*models.SecretData, error) {
 	const query = `
-		SELECT id, type, name, content FROM secrets
+		SELECT id, type_secret, name, content FROM secrets
 		WHERE id = $1;
 `
 	m := &models.SecretData{}

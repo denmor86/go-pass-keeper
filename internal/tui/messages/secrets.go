@@ -14,17 +14,6 @@ type DecryptConverter interface {
 	FromModel([]byte, *models.SecretInfo, []byte) error
 }
 
-// Сообщения для управления секретами
-type SecretAddCompleteMsg struct {
-	Id       string
-	Name     string
-	Type     string
-	Login    string
-	Password string
-	Content  string
-	FileName string
-}
-
 // SecretPassword - модель с данными логин/пароль
 type SecretPassword struct {
 	Name     string
@@ -125,7 +114,7 @@ type GetSecretTextMsg struct {
 }
 
 // ToModel - метод формирует информацию о секрете и шифрованный контент
-func (msg *GetSecretTextMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+func (msg *AddSecretTextMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
 
 	secret := models.NewSecretText(msg.Data.Text)
 	data, err := secret.Encrypt(key)
@@ -164,7 +153,7 @@ type GetSecretBinarytMsg struct {
 }
 
 // ToModel - метод формирует информацию о секрете и шифрованный контент
-func (msg *GetSecretBinarytMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+func (msg *AddSecretBinaryMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
 
 	secret := models.NewSecretBinary(msg.Data.Blob)
 	data, err := secret.Encrypt(key)
