@@ -43,6 +43,7 @@ func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.S
 	return m, nil
 }
 
+// Get - получение записи с секретом (возвращает модель секрета)
 func (s *SecretStorage) Get(ctx context.Context, sid uuid.UUID) (*models.SecretData, error) {
 	const query = `
 		SELECT id, type_secret, name, content, created_at, updated_at FROM secrets

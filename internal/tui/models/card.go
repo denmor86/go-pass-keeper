@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// BankCardSecretModel - модель окна создания/просмотра секрета (банковская карта)
 type BankCardSecretModel struct {
 	cardInputs []textinput.Model
 	focused    int
@@ -18,6 +19,7 @@ type BankCardSecretModel struct {
 	secretData messages.SecretCard
 }
 
+// NewBankCardSecretModel - метод создания модель окна секрета (банковская карта)
 func NewBankCardSecretModel() BankCardSecretModel {
 	model := BankCardSecretModel{
 		focused:    0,
@@ -58,10 +60,12 @@ func NewBankCardSecretModel() BankCardSecretModel {
 	return model
 }
 
+// Init - метод инициализации текущего окна
 func (m BankCardSecretModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод обновления текущего окна
 func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -159,6 +163,7 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод отрисовки текущего состояния
 func (m BankCardSecretModel) View() string {
 	fields := []string{
 		m.renderInputField("📝 Имя карты:", m.cardInputs[0], 0),
@@ -216,6 +221,7 @@ func (m BankCardSecretModel) View() string {
 		)
 }
 
+// renderInputField - метод для отрисовки полей ввода
 func (m BankCardSecretModel) renderInputField(label string, input textinput.Model, index int) string {
 	var inputStyle lipgloss.Style
 	if index == m.focused && !m.isViewMode {

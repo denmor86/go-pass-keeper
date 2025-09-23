@@ -18,6 +18,7 @@ import (
 
 type ViewerState int
 
+// Список состояний окна
 const (
 	ViewerListState ViewerState = iota
 	SecretViewState
@@ -32,6 +33,7 @@ const (
 	UpdateButton
 )
 
+// ViewerModel - модель окна секретов
 type ViewerModel struct {
 	state      ViewerState
 	table      table.Model
@@ -44,6 +46,7 @@ type ViewerModel struct {
 	cryptoKey  []byte
 }
 
+// NewViewerModel - метод создания окна секретов
 func NewViewerModel(connection *settings.Settings) ViewerModel {
 	return ViewerModel{
 		state:      ViewerListState,
@@ -53,10 +56,13 @@ func NewViewerModel(connection *settings.Settings) ViewerModel {
 		settings:   connection,
 	}
 }
+
+// Init - метод инициализации текущего окна
 func (m ViewerModel) Init() tea.Cmd {
 	return m.attemptGetSecrets()
 }
 
+// Update - метод обновления текущего окна
 func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -111,6 +117,7 @@ func (m ViewerModel) updateWindowsSize(msg tea.WindowSizeMsg) (ViewerModel, tea.
 	return m, tea.Batch(addModelCmd)
 }
 
+// handleListState - метод обработки основного окна (таблица + кнопки)
 func (m ViewerModel) handleListState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -149,6 +156,7 @@ func (m ViewerModel) handleListState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	return m, cmd
 }
 
+// handleAddState - метод обработки окна добавления секретов
 func (m ViewerModel) handleAddState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	// Передаем сообщение в модель добавления
 	updatedModel, cmd := m.addModel.Update(msg)
@@ -156,6 +164,7 @@ func (m ViewerModel) handleAddState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	return m, cmd
 }
 
+// handleViewState - метод обработки окна просмотра секретов
 func (m ViewerModel) handleViewState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	// ESC в окне просмотра - возврат к списку секретов
 	if keyMsg, ok := msg.(tea.KeyMsg); ok && keyMsg.String() == "esc" {
@@ -164,6 +173,7 @@ func (m ViewerModel) handleViewState(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	return m, nil
 }
 
+// handleEnterAction - метод обработки нажатия на enter
 func (m ViewerModel) handleEnterAction() (ViewerModel, tea.Cmd) {
 	// Если выбрана кнопка "Добавить"
 	if m.focusedBtn == AddButton {
@@ -194,10 +204,10 @@ func (m ViewerModel) handleEnterAction() (ViewerModel, tea.Cmd) {
 	return m, nil
 }
 
-// handleAuthAction - обработчик добавления секрета
+// handleAuthAction - обработчик авторизации (формирование токена и ключа шифрования)
 func (m ViewerModel) handleAuthAction(msg messages.AuthSuccessMsg) (ViewerModel, tea.Cmd) {
 	m.token = msg.Token
-	key, err := crypto.MakeCryptoKey("secret", msg.Salt)
+	key, err := crypto.MakeCryptoKey(m.settings.Secret, msg.Salt)
 	if err != nil {
 		return m, func() tea.Msg {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка формирования ключа: %s", err.Error()))
@@ -207,11 +217,13 @@ func (m ViewerModel) handleAuthAction(msg messages.AuthSuccessMsg) (ViewerModel,
 	return m, nil
 }
 
+// refreshViewer - обновление таблицы секретов
 func (m ViewerModel) refreshViewer() ViewerModel {
 	m.table.SetRows(createTableRows(m.secrets))
 	return m
 }
 
+// View - метод отрисовки текущего состояния
 func (m ViewerModel) View() string {
 	switch m.state {
 	case ViewerListState:
@@ -223,19 +235,21 @@ func (m ViewerModel) View() string {
 	}
 }
 
+// createTable - метод формирования модели таблицы секретов
 func createTable() table.Model {
 	columns := []table.Column{
 		{Title: "ID", Width: 8},
-		{Title: "Название", Width: 30},
-		{Title: "Тип", Width: 12},
-		{Title: "Создан", Width: 12},
-		{Title: "Обновлен", Width: 12},
+		{Title: "Название", Width: 40},
+		{Title: "Тип", Width: 10},
+		{Title: "Создан", Width: 15},
+		{Title: "Обновлен", Width: 15},
 	}
 
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithFocused(true),
 		table.WithHeight(10),
+		table.WithWidth(100),
 	)
 
 	s := table.DefaultStyles()
@@ -253,6 +267,7 @@ func createTable() table.Model {
 	return t
 }
 
+// createTableRows - метод формирования строк в таблице секретов
 func createTableRows(secrets []*models.SecretInfo) []table.Row {
 	rows := make([]table.Row, len(secrets))
 	for i, secret := range secrets {
@@ -267,7 +282,7 @@ func createTableRows(secrets []*models.SecretInfo) []table.Row {
 	return rows
 }
 
-// Методы отображения
+// renderViewerListView - метод отрисовки списка секретов
 func (m ViewerModel) renderViewerListView() string {
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
@@ -304,6 +319,7 @@ func (m ViewerModel) renderViewerListView() string {
 		)
 }
 
+// renderButtons - метод отрисовки кнопок
 func (m ViewerModel) renderButtons() string {
 	buttons := []string{
 		m.renderButton("➕ Добавить", AddButton),
@@ -318,6 +334,7 @@ func (m ViewerModel) renderButtons() string {
 	)
 }
 
+// renderButtons - метод отрисовки кнопки
 func (m ViewerModel) renderButton(text string, index int) string {
 	if index == m.focusedBtn {
 		return styles.ActiveButtonStyle.
@@ -331,6 +348,7 @@ func (m ViewerModel) renderButton(text string, index int) string {
 		Render(text)
 }
 
+// renderButtons - метод отрисовки вспомогательного текста
 func (m ViewerModel) renderHelpText() string {
 	helpText := "↑/↓: выбор секрета • ←/→: выбор кнопки • Enter: действие • R: обновить • ESC: выход"
 

@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Состояния модели
 const (
 	SecretTypeSelectState = iota
 	LoginPasswordState
@@ -16,6 +17,7 @@ const (
 	BankCardState
 )
 
+// SecretAddModel - модель выбора создаваемого секрета
 type SecretAddModel struct {
 	state       int
 	windowSize  tea.WindowSizeMsg
@@ -28,6 +30,7 @@ type SecretAddModel struct {
 	cardModel  BankCardSecretModel
 }
 
+// NewViewerModel - метод создания выбора создаваемого секрета
 func NewSecretAddModel() SecretAddModel {
 	return SecretAddModel{
 		state:       SecretTypeSelectState,
@@ -40,6 +43,7 @@ func NewSecretAddModel() SecretAddModel {
 	}
 }
 
+// Init - метод инициализации текущего окна
 func (m SecretAddModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.loginModel.Init(),
@@ -49,6 +53,7 @@ func (m SecretAddModel) Init() tea.Cmd {
 	)
 }
 
+// Update - метод обновления текущего окна
 func (m SecretAddModel) Update(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -103,6 +108,7 @@ func (m SecretAddModel) updateWindowsSize(msg tea.WindowSizeMsg) (SecretAddModel
 	return m, tea.Batch(loginModelCmd, fileModelCmd, textModelCmd, cardModelCmd)
 }
 
+// updateTypeSelect - метод обработки выбора типа
 func (m SecretAddModel) updateTypeSelect(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -149,30 +155,35 @@ func (m SecretAddModel) updateTypeSelect(msg tea.Msg) (SecretAddModel, tea.Cmd) 
 	return m, nil
 }
 
+// updateLoginPassword - метод обновления окна секрета (пароль/логин)
 func (m SecretAddModel) updateLoginPassword(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	updatedModel, cmd := m.loginModel.Update(msg)
 	m.loginModel = updatedModel
 	return m, cmd
 }
 
+// updateText - метод обновления окна секрета (текст)
 func (m SecretAddModel) updateText(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	updatedModel, cmd := m.textModel.Update(msg)
 	m.textModel = updatedModel
 	return m, cmd
 }
 
+// updateFile - метод обновления окна секрета (файл)
 func (m SecretAddModel) updateFile(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	updatedModel, cmd := m.fileModel.Update(msg)
 	m.fileModel = updatedModel
 	return m, cmd
 }
 
+// updateBankCard - метод обновления окна секрета (банковская карта)
 func (m SecretAddModel) updateBankCard(msg tea.Msg) (SecretAddModel, tea.Cmd) {
 	updatedModel, cmd := m.cardModel.Update(msg)
 	m.cardModel = updatedModel
 	return m, cmd
 }
 
+// View - метод отрисовки текущего состояния
 func (m SecretAddModel) View() string {
 	switch m.state {
 	case SecretTypeSelectState:
@@ -190,6 +201,7 @@ func (m SecretAddModel) View() string {
 	}
 }
 
+// renderTypeSelectView - метод для отрисовки кнопок в окне выбора типа создаваемого секрета
 func (m SecretAddModel) renderTypeSelectView() string {
 	// Создаем кнопки выбора типа
 	buttons := make([]string, len(m.secretTypes))

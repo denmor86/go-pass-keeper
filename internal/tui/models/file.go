@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// FileSecretModel - модель окна создания/просмотра секрета (файл)
 type FileSecretModel struct {
 	filePathInput textinput.Model
 	windowSize    tea.WindowSizeMsg
@@ -19,6 +20,7 @@ type FileSecretModel struct {
 	secretData    messages.SecretBinary // Данные для просмотра
 }
 
+// NewFileSecretModel - метод создания модель окна секрета (файл)
 func NewFileSecretModel() FileSecretModel {
 	model := FileSecretModel{
 		isViewMode: false,
@@ -35,10 +37,12 @@ func NewFileSecretModel() FileSecretModel {
 	return model
 }
 
+// Init - метод инициализации текущего окна
 func (m FileSecretModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод обновления текущего окна
 func (m FileSecretModel) Update(msg tea.Msg) (FileSecretModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -95,6 +99,7 @@ func (m FileSecretModel) Update(msg tea.Msg) (FileSecretModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод отрисовки текущего состояния
 func (m FileSecretModel) View() string {
 	fileInfo := ""
 
@@ -180,6 +185,7 @@ func (m FileSecretModel) View() string {
 		)
 }
 
+// renderInputField - метод для отрисовки полей ввода
 func (m FileSecretModel) renderInputField(label string, input textinput.Model) string {
 	var inputStyle lipgloss.Style
 	if m.isViewMode {

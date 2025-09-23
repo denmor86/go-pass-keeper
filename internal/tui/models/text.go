@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// TextSecretModel - модель окна создания/просмотра текстового секрета
 type TextSecretModel struct {
 	nameInput  textinput.Model
 	textArea   textarea.Model
@@ -20,6 +21,7 @@ type TextSecretModel struct {
 	secretData messages.SecretText // Данные для просмотра
 }
 
+// NewTextSecretModel - метод создания модель окна создания/просмотра текстового секрета
 func NewTextSecretModel() TextSecretModel {
 	model := TextSecretModel{
 		focused:    false,
@@ -41,10 +43,12 @@ func NewTextSecretModel() TextSecretModel {
 	return model
 }
 
+// Init - метод инициализации текущего окна
 func (m TextSecretModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод обновления текущего окна
 func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -116,6 +120,7 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод отрисовки текущего состояния
 func (m TextSecretModel) View() string {
 	title := "📝 Текст"
 	buttons := lipgloss.JoinHorizontal(
@@ -177,6 +182,7 @@ func (m TextSecretModel) View() string {
 		)
 }
 
+// renderInputField - метод для отрисовки полей ввода
 func (m TextSecretModel) renderInputField(label string, input textinput.Model) string {
 	var inputStyle lipgloss.Style
 	if (!m.focused && !m.isViewMode) || (m.isViewMode && m.focused) {
@@ -203,6 +209,7 @@ func (m TextSecretModel) renderInputField(label string, input textinput.Model) s
 	) + "\n"
 }
 
+// renderTextArea - метод отрисовки окна для ввода текста
 func (m TextSecretModel) renderTextArea(area textarea.Model) string {
 
 	var areaView string

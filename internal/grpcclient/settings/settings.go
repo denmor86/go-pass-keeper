@@ -12,6 +12,7 @@ type Settings struct {
 	Secret     string // не сохраняем для секурности
 }
 
+// ServerAddress - формирование строки адреса сервера
 func (s *Settings) ServerAddress() string {
 	return fmt.Sprintf("%s:%s", s.ServerURL, s.ServerPort)
 }

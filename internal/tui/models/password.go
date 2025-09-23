@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// LoginSecretModel - модель окна секрета (логин/пароль)
 type LoginSecretModel struct {
 	nameInput     textinput.Model
 	loginInput    textinput.Model
@@ -20,12 +21,14 @@ type LoginSecretModel struct {
 	secretData    messages.SecretPassword // Данные для просмотра
 }
 
+// Индексы полей
 const (
 	fieldNameIndex = iota
 	fieldLoginIndex
 	fieldPasswordIndex
 )
 
+// NewFileSecretModel - метод создания модель окна секрета (логин/пароль)
 func NewLoginSecretModel() LoginSecretModel {
 	model := LoginSecretModel{
 		focused:    fieldNameIndex,
@@ -55,10 +58,12 @@ func NewLoginSecretModel() LoginSecretModel {
 	return model
 }
 
+// Init - метод инициализации текущего окна
 func (m LoginSecretModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update - метод обновления текущего окна
 func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -170,6 +175,7 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// View - метод отрисовки текущего состояния
 func (m LoginSecretModel) View() string {
 	fields := []string{
 		m.renderInputField("📝 Название:", m.nameInput, fieldNameIndex),
@@ -220,6 +226,7 @@ func (m LoginSecretModel) View() string {
 		)
 }
 
+// renderInputField - метод для отрисовки полей ввода
 func (m LoginSecretModel) renderInputField(label string, input textinput.Model, index int) string {
 	var inputStyle lipgloss.Style
 	if index == m.focused && !m.isViewMode {

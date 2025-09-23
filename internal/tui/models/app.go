@@ -369,6 +369,5 @@ func (m AppModel) handleSettingsUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 
 // isAuthorized - метод определения наличия авторизации пользователя
 func (m AppModel) isAuthorized() bool {
-	return true
-	//return len(m.token) > 0
+	return len(m.token) > 0
 }

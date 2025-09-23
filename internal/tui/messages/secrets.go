@@ -7,11 +7,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// EncryptConverter - интерфейс для расшифровки сообщений
 type EncryptConverter interface {
 	ToModel([]byte) (*models.SecretInfo, []byte, error)
-}
-type DecryptConverter interface {
-	FromModel([]byte, *models.SecretInfo, []byte) error
 }
 
 // SecretPassword - модель с данными логин/пароль

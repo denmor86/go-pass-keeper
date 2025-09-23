@@ -11,6 +11,7 @@ const (
 	headerAuthorize = "authorization"
 )
 
+// AuthInterceptor - метод интерсептор для авторизации в обычных запросах
 func AuthInterceptor(
 	token string,
 ) grpc.UnaryClientInterceptor {
@@ -33,6 +34,7 @@ func AuthInterceptor(
 	}
 }
 
+// AuthStreamInterceptor - метод интерсептор для авторизации в потоковых запросах
 func AuthStreamInterceptor(
 	token string,
 ) grpc.StreamClientInterceptor {

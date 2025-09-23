@@ -116,8 +116,6 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 		}
 	}
 
-	// Ключевое изменение: обрабатываем ввод ТОЛЬКО для активного поля
-	// и НЕ обрабатываем для остальных полей
 	if m.focused >= 0 && m.focused < len(m.inputs) {
 		var cmd tea.Cmd
 		m.inputs[m.focused], cmd = m.inputs[m.focused].Update(msg)
