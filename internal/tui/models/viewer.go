@@ -275,8 +275,8 @@ func createTableRows(secrets []*models.SecretInfo) []table.Row {
 			secret.ID,
 			secret.Name,
 			secret.Type,
-			secret.Created.Local().Format(time.UnixDate),
-			secret.Updated.Local().Format(time.UnixDate),
+			secret.Created.Local().Format(time.DateTime),
+			secret.Updated.Local().Format(time.DateTime),
 		}
 	}
 	return rows
