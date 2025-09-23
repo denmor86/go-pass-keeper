@@ -1,13 +1,11 @@
 package models
 
 import (
-	"fmt"
 	"go-pass-keeper/internal/grpcclient/config"
 	"go-pass-keeper/internal/tui/messages"
 	"go-pass-keeper/internal/tui/styles"
 
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -39,7 +37,6 @@ type AppModel struct {
 	register   RegisterModel
 	secrets    ViewerModel
 	settings   SettingsModel
-	viewport   viewport.Model
 	windowSize tea.WindowSizeMsg
 	focused    int
 	username   string
@@ -57,7 +54,6 @@ func NewAppModel(config *config.Config) AppModel {
 		register: NewRegisterModel(connection),
 		secrets:  NewViewerModel(connection),
 		settings: NewSettingsModel(connection),
-		viewport: viewport.New(80, 20),
 		focused:  0,
 		username: "",
 		token:    "",
@@ -105,7 +101,6 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = MainState
 		m.username = msg.Username
 		m.token = msg.Token
-		m.viewport.SetContent(fmt.Sprintf("Приветствуем, %s!\n\nВы успешно вошли в систему.\n", m.username))
 		return m.handleSecretUpdate(msg)
 
 	case messages.ErrorMsg:
@@ -165,8 +160,6 @@ func (m AppModel) View() string {
 // updateWindowsSize - метод обновления размеров окон
 func (m AppModel) updateWindowsSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.windowSize = msg
-	m.viewport.Width = msg.Width
-	m.viewport.Height = msg.Height
 
 	// Передаем размеры окна всем дочерним моделям
 	updatedLogin, loginCmd := m.login.Update(msg)

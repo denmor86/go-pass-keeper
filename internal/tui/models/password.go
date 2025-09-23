@@ -16,11 +16,21 @@ type LoginSecretModel struct {
 	passwordInput textinput.Model
 	focused       int
 	windowSize    tea.WindowSizeMsg
+	isViewMode    bool                    // Флаг режима просмотра
+	secretData    messages.SecretPassword // Данные для просмотра
 }
+
+// Константы для индексов полей с понятными названиями
+const (
+	fieldNameIndex = iota
+	fieldLoginIndex
+	fieldPasswordIndex
+)
 
 func NewLoginSecretModel() LoginSecretModel {
 	model := LoginSecretModel{
-		focused: 0,
+		focused:    fieldNameIndex,
+		isViewMode: false,
 	}
 
 	model.nameInput = textinput.New()
@@ -60,11 +70,36 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 		m.windowSize = msg
 		return m, nil
 
+	case messages.GetSecretPasswordMsg:
+		// Переключаемся в режим просмотра при получении данных
+		m.isViewMode = true
+		m.secretData = msg.Data
+
+		// Заполняем поля данными для просмотра
+		m.nameInput.SetValue(msg.Data.Name)
+		m.loginInput.SetValue(msg.Data.Login)
+		m.passwordInput.SetValue(msg.Data.Password)
+		return m, nil
+
 	case tea.KeyMsg:
+		// В режиме просмотра обрабатываем только ESC
+		if m.isViewMode {
+			switch msg.String() {
+			case "esc":
+				m.isViewMode = false
+				return m, func() tea.Msg {
+					return messages.SecretAddCancelMsg{}
+				}
+			}
+			return m, nil
+		}
+
+		// Режим редактирования
 		switch msg.String() {
 		case "tab", "shift+tab", "up", "down":
 			s := msg.String()
 
+			// Сбрасываем стили всех полей
 			m.nameInput.Blur()
 			m.loginInput.Blur()
 			m.passwordInput.Blur()
@@ -75,29 +110,30 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 			m.passwordInput.PromptStyle = styles.BlurredStyle
 			m.passwordInput.TextStyle = styles.BlurredStyle
 
+			// Навигация по полям
 			if s == "up" || s == "shift+tab" {
 				m.focused--
 			} else {
 				m.focused++
 			}
 
-			if m.focused > 2 {
-				m.focused = 0
-			} else if m.focused < 0 {
-				m.focused = 2
+			if m.focused > fieldPasswordIndex {
+				m.focused = fieldNameIndex
+			} else if m.focused < fieldNameIndex {
+				m.focused = fieldPasswordIndex
 			}
 
-			// Устанавливаем фокус только на активное поле
+			// Устанавливаем фокус на активное поле
 			switch m.focused {
-			case 0:
+			case fieldNameIndex:
 				cmds = append(cmds, m.nameInput.Focus())
 				m.nameInput.PromptStyle = styles.FocusedStyle
 				m.nameInput.TextStyle = styles.FocusedStyle
-			case 1:
+			case fieldLoginIndex:
 				cmds = append(cmds, m.loginInput.Focus())
 				m.loginInput.PromptStyle = styles.FocusedStyle
 				m.loginInput.TextStyle = styles.FocusedStyle
-			case 2:
+			case fieldPasswordIndex:
 				cmds = append(cmds, m.passwordInput.Focus())
 				m.passwordInput.PromptStyle = styles.FocusedStyle
 				m.passwordInput.TextStyle = styles.FocusedStyle
@@ -113,13 +149,20 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 			}
 		}
 	}
+
+	// В режиме просмотра игнорируем ввод данных
+	if m.isViewMode {
+		return m, nil
+	}
+
+	// Обновляем активное поле ввода
 	var cmd tea.Cmd
 	switch m.focused {
-	case 0:
+	case fieldNameIndex:
 		m.nameInput, cmd = m.nameInput.Update(msg)
-	case 1:
+	case fieldLoginIndex:
 		m.loginInput, cmd = m.loginInput.Update(msg)
-	case 2:
+	case fieldPasswordIndex:
 		m.passwordInput, cmd = m.passwordInput.Update(msg)
 	}
 
@@ -132,16 +175,30 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 
 func (m LoginSecretModel) View() string {
 	fields := []string{
-		m.renderInputField("📝 Название:", m.nameInput, 0),
-		m.renderInputField("👤 Логин:", m.loginInput, 1),
-		m.renderInputField("🔒 Пароль:", m.passwordInput, 2),
+		m.renderInputField("📝 Название:", m.nameInput, fieldNameIndex),
+		m.renderInputField("👤 Логин:", m.loginInput, fieldLoginIndex),
+		m.renderInputField("🔒 Пароль:", m.passwordInput, fieldPasswordIndex),
+	}
+
+	title := "🔐 Логин и пароль"
+	buttons := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		styles.ButtonStyle.Render("Enter - Сохранить"),
+		styles.DividerStyle.Render(),
+		styles.ButtonStyle.Render("ESC - Отмена"),
+	)
+
+	// В режиме просмотра меняем заголовок и кнопки
+	if m.isViewMode {
+		title = "👁️ Просмотр логина и пароля"
+		buttons = styles.ButtonStyle.Render("ESC - Назад")
 	}
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		styles.TitleStyle.
 			Width(40).
-			Render("🔐 Логин и пароль"),
+			Render(title),
 
 		lipgloss.NewStyle().Height(2).Render(""),
 
@@ -149,12 +206,7 @@ func (m LoginSecretModel) View() string {
 
 		lipgloss.NewStyle().Height(2).Render(""),
 
-		lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			styles.ButtonStyle.Render("Enter - Сохранить"),
-			styles.DividerStyle.Render(),
-			styles.ButtonStyle.Render("ESC - Отмена"),
-		),
+		buttons,
 	)
 
 	return styles.ContainerStyle.
@@ -173,18 +225,33 @@ func (m LoginSecretModel) View() string {
 
 func (m LoginSecretModel) renderInputField(label string, input textinput.Model, index int) string {
 	var inputStyle lipgloss.Style
-	if index == m.focused {
+	if index == m.focused && !m.isViewMode {
 		inputStyle = styles.FocusedInputFieldStyle
 	} else {
 		inputStyle = styles.InputFieldStyle
 	}
 
 	var fieldView string
-	if index == m.focused {
+	if m.isViewMode {
+		// В режиме просмотра показываем звездочки для пароля
+		value := input.Value()
+		if index == fieldPasswordIndex && value != "" {
+			stars := make([]rune, len(value))
+			for i := range stars {
+				stars[i] = '•'
+			}
+			fieldView = string(stars)
+		} else {
+			fieldView = value
+			if fieldView == "" {
+				fieldView = " "
+			}
+		}
+	} else if index == m.focused {
 		fieldView = input.View()
 	} else {
 		value := input.Value()
-		if index == 2 && value != "" {
+		if index == fieldPasswordIndex && value != "" {
 			stars := make([]rune, len(value))
 			for i := range stars {
 				stars[i] = '•'
@@ -217,6 +284,13 @@ func (m LoginSecretModel) attemptAddSecret(name string, username string, passwor
 		if len(password) == 0 {
 			return messages.ErrorMsg("Необходимо задать пароль")
 		}
-		return messages.AddSecretPasswordMsg{Data: messages.SecretPassword{Name: name, Type: models.SecretPasswordType, Login: username, Password: password}}
+		return messages.AddSecretPasswordMsg{
+			Data: messages.SecretPassword{
+				Name:     name,
+				Type:     models.SecretPasswordType,
+				Login:    username,
+				Password: password,
+			},
+		}
 	}
 }

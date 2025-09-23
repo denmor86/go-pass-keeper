@@ -15,15 +15,20 @@ import (
 type FileSecretModel struct {
 	filePathInput textinput.Model
 	windowSize    tea.WindowSizeMsg
+	isViewMode    bool                  // Флаг режима просмотра
+	secretData    messages.SecretBinary // Данные для просмотра
 }
 
 func NewFileSecretModel() FileSecretModel {
-	model := FileSecretModel{}
+	model := FileSecretModel{
+		isViewMode: false,
+	}
 
 	model.filePathInput = textinput.New()
 	model.filePathInput.Placeholder = "Введите путь к файлу"
 	model.filePathInput.CharLimit = 255
-	model.filePathInput.TextStyle = styles.BlurredStyle
+	model.filePathInput.TextStyle = styles.FocusedStyle
+	model.filePathInput.PromptStyle = styles.FocusedStyle
 
 	model.filePathInput.Focus()
 
@@ -42,7 +47,31 @@ func (m FileSecretModel) Update(msg tea.Msg) (FileSecretModel, tea.Cmd) {
 		m.windowSize = msg
 		return m, nil
 
+	case messages.GetSecretBinaryMsg:
+		// Переключаемся в режим просмотра при получении данных
+		m.isViewMode = true
+		m.secretData = msg.Data
+
+		// Заполняем поле данными для просмотра
+		m.filePathInput.SetValue(msg.Data.Name)
+		return m, nil
+
 	case tea.KeyMsg:
+		// В режиме просмотра обрабатываем Enter (сохранение) и ESC
+		if m.isViewMode {
+			switch msg.String() {
+			case "enter":
+				return m, m.attemptSaveFile(m.secretData)
+			case "esc":
+				m.isViewMode = false
+				return m, func() tea.Msg {
+					return messages.SecretAddCancelMsg{}
+				}
+			}
+			return m, nil
+		}
+
+		// Режим редактирования
 		switch msg.String() {
 		case "enter":
 			return m, m.attemptAddSecret(m.filePathInput.Value())
@@ -54,6 +83,11 @@ func (m FileSecretModel) Update(msg tea.Msg) (FileSecretModel, tea.Cmd) {
 		}
 	}
 
+	// В режиме просмотра игнорируем ввод данных
+	if m.isViewMode {
+		return m, nil
+	}
+
 	var cmd tea.Cmd
 	m.filePathInput, cmd = m.filePathInput.Update(msg)
 	cmds = append(cmds, cmd)
@@ -63,7 +97,15 @@ func (m FileSecretModel) Update(msg tea.Msg) (FileSecretModel, tea.Cmd) {
 
 func (m FileSecretModel) View() string {
 	fileInfo := ""
-	if m.filePathInput.Value() != "" {
+
+	if m.isViewMode {
+		// В режиме просмотра показываем информацию о файле
+		fileInfo = "Файл: " + m.secretData.Name
+		if m.secretData.Blob != nil {
+			fileInfo += " | Готов к сохранению"
+		}
+	} else if m.filePathInput.Value() != "" {
+		// В режиме редактирования проверяем существование файла
 		fileInfo = "Путь: " + m.filePathInput.Value()
 
 		// Проверяем существование файла
@@ -74,15 +116,36 @@ func (m FileSecretModel) View() string {
 		}
 	}
 
+	title := "📁 Укажите путь к файлу"
+	buttons := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		styles.ButtonStyle.Render("Enter - Сохранить"),
+		styles.DividerStyle.Render(),
+		styles.ButtonStyle.Render("ESC - Отмена"),
+	)
+	hint := "Введите полный путь к файлу для сохранения"
+
+	// В режиме просмотра меняем заголовок, кнопки и подсказку
+	if m.isViewMode {
+		title = "👁️ Просмотр файла"
+		buttons = lipgloss.JoinHorizontal(
+			lipgloss.Center,
+			styles.ButtonStyle.Render("Enter - Сохранить на диск"),
+			styles.DividerStyle.Render(),
+			styles.ButtonStyle.Render("ESC - Закрыть"),
+		)
+		hint = "Нажмите Enter чтобы сохранить файл на диск"
+	}
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		styles.TitleStyle.
 			Width(40).
-			Render("📁 Укажите путь к файлу"),
+			Render(title),
 
 		lipgloss.NewStyle().Height(2).Render(""),
 
-		m.renderInputField("📁 Путь к файлу:", m.filePathInput),
+		m.renderInputField("📁 Имя файла:", m.filePathInput),
 
 		lipgloss.NewStyle().Height(1).Render(""),
 
@@ -93,19 +156,14 @@ func (m FileSecretModel) View() string {
 
 		lipgloss.NewStyle().Height(2).Render(""),
 
-		lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			styles.ButtonStyle.Render("Enter - Сохранить"),
-			styles.DividerStyle.Render(),
-			styles.ButtonStyle.Render("ESC - Отмена"),
-		),
+		buttons,
 
 		lipgloss.NewStyle().Height(1).Render(""),
 
 		lipgloss.NewStyle().
 			Foreground(styles.TextSecondary).
 			Italic(true).
-			Render("Введите полный путь к файлу для сохранения"),
+			Render(hint),
 	)
 
 	return styles.ContainerStyle.
@@ -123,10 +181,28 @@ func (m FileSecretModel) View() string {
 }
 
 func (m FileSecretModel) renderInputField(label string, input textinput.Model) string {
+	var inputStyle lipgloss.Style
+	if m.isViewMode {
+		inputStyle = styles.InputFieldStyle
+	} else {
+		inputStyle = styles.FocusedInputFieldStyle
+	}
+
+	var fieldView string
+	if m.isViewMode {
+		// В режиме просмотра показываем только значение без курсора
+		fieldView = input.Value()
+		if fieldView == "" {
+			fieldView = " "
+		}
+	} else {
+		fieldView = input.View()
+	}
+
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		styles.InputLabelStyle.Render(label),
-		styles.FocusedInputFieldStyle.Render(input.View()),
+		inputStyle.Render(fieldView),
 	) + "\n"
 }
 
@@ -143,8 +219,41 @@ func (m FileSecretModel) attemptAddSecret(filename string) tea.Cmd {
 			if err != nil {
 				return messages.ErrorMsg("Ошибка чтения файла")
 			}
-			return messages.AddSecretBinaryMsg{Data: messages.SecretBinary{Name: filepath.Base(filename), Type: models.SecretBinaryType, Blob: content}}
+			return messages.AddSecretBinaryMsg{
+				Data: messages.SecretBinary{
+					Name: filepath.Base(filename),
+					Type: models.SecretBinaryType,
+					Blob: content,
+				},
+			}
 		}
 		return messages.ErrorMsg("Файл не найден или недоступен")
+	}
+}
+
+// attemptSaveFile - метод сохранения файла на диск в режиме просмотра
+func (m FileSecretModel) attemptSaveFile(secret messages.SecretBinary) tea.Cmd {
+	return func() tea.Msg {
+		if secret.Blob == nil {
+			return messages.ErrorMsg("Нет данных для сохранения")
+		}
+
+		// Запрашиваем путь для сохранения
+		// В реальной реализации здесь можно добавить диалог выбора пути
+		// Сейчас сохраняем в текущую директорию с оригинальным именем
+		filename := secret.Name
+
+		// Проверяем, не существует ли файл
+		if _, err := os.Stat(filename); err == nil {
+			return messages.ErrorMsg("Файл уже существует: " + filename)
+		}
+
+		// Сохраняем файл
+		err := os.WriteFile(filename, secret.Blob, 0644)
+		if err != nil {
+			return messages.ErrorMsg("Ошибка сохранения файла: " + err.Error())
+		}
+
+		return nil
 	}
 }

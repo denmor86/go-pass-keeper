@@ -16,11 +16,14 @@ type TextSecretModel struct {
 	textArea   textarea.Model
 	focused    bool
 	windowSize tea.WindowSizeMsg
+	isViewMode bool                // Флаг режима просмотра
+	secretData messages.SecretText // Данные для просмотра
 }
 
 func NewTextSecretModel() TextSecretModel {
 	model := TextSecretModel{
-		focused: false,
+		focused:    false,
+		isViewMode: false,
 	}
 
 	model.nameInput = textinput.New()
@@ -51,7 +54,30 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 		m.textArea.SetWidth(msg.Width - 20)
 		return m, nil
 
+	case messages.GetSecretTextMsg:
+		// Переключаемся в режим просмотра при получении данных
+		m.isViewMode = true
+		m.secretData = msg.Data
+
+		// Заполняем поля данными для просмотра
+		m.nameInput.SetValue(msg.Data.Name)
+		m.textArea.SetValue(msg.Data.Text)
+		return m, nil
+
 	case tea.KeyMsg:
+		// В режиме просмотра обрабатываем только ESC
+		if m.isViewMode {
+			switch msg.String() {
+			case "esc":
+				m.isViewMode = false
+				return m, func() tea.Msg {
+					return messages.SecretAddCancelMsg{}
+				}
+			}
+			return m, nil
+		}
+
+		// Режим редактирования
 		switch msg.String() {
 		case "tab":
 			if m.focused {
@@ -74,6 +100,11 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 		}
 	}
 
+	// В режиме просмотра игнорируем ввод данных
+	if m.isViewMode {
+		return m, nil
+	}
+
 	var cmd tea.Cmd
 	if m.focused {
 		m.textArea, cmd = m.textArea.Update(msg)
@@ -86,11 +117,27 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 }
 
 func (m TextSecretModel) View() string {
+	title := "📝 Текст"
+	buttons := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		styles.ButtonStyle.Render("Enter - Сохранить"),
+		styles.DividerStyle.Render(),
+		styles.ButtonStyle.Render("ESC - Отмена"),
+	)
+	hint := "Tab: переключение между полями"
+
+	// В режиме просмотра меняем заголовок, кнопки и подсказку
+	if m.isViewMode {
+		title = "👁️ Просмотр текста"
+		buttons = styles.ButtonStyle.Render("ESC - Закрыть")
+		hint = "Режим просмотра"
+	}
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		styles.TitleStyle.
 			Width(40).
-			Render("📝 Текст"),
+			Render(title),
 
 		lipgloss.NewStyle().Height(1).Render(""),
 
@@ -102,25 +149,18 @@ func (m TextSecretModel) View() string {
 			Foreground(styles.TextSecondary).
 			Render("Текст:"),
 
-		styles.InputFieldStyle.
-			Height(8).
-			Render(m.textArea.View()),
+		m.renderTextArea(m.textArea),
 
 		lipgloss.NewStyle().Height(2).Render(""),
 
-		lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			styles.ButtonStyle.Render("Enter - Сохранить"),
-			styles.DividerStyle.Render(),
-			styles.ButtonStyle.Render("ESC - Отмена"),
-		),
+		buttons,
 
 		lipgloss.NewStyle().Height(1).Render(""),
 
 		lipgloss.NewStyle().
 			Foreground(styles.TextSecondary).
 			Italic(true).
-			Render("Tab: переключение между полями"),
+			Render(hint),
 	)
 
 	return styles.ContainerStyle.
@@ -139,17 +179,50 @@ func (m TextSecretModel) View() string {
 
 func (m TextSecretModel) renderInputField(label string, input textinput.Model) string {
 	var inputStyle lipgloss.Style
-	if !m.focused {
+	if (!m.focused && !m.isViewMode) || (m.isViewMode && m.focused) {
 		inputStyle = styles.FocusedInputFieldStyle
 	} else {
 		inputStyle = styles.InputFieldStyle
 	}
 
+	var fieldView string
+	if m.isViewMode {
+		// В режиме просмотра показываем только значение без курсора
+		fieldView = input.Value()
+		if fieldView == "" {
+			fieldView = " "
+		}
+	} else {
+		fieldView = input.View()
+	}
+
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		styles.InputLabelStyle.Render(label),
-		inputStyle.Render(input.View()),
+		inputStyle.Render(fieldView),
 	) + "\n"
+}
+
+func (m TextSecretModel) renderTextArea(area textarea.Model) string {
+	var areaStyle lipgloss.Style
+	if m.isViewMode {
+		areaStyle = styles.InputFieldStyle.Height(8)
+	} else {
+		areaStyle = styles.InputFieldStyle.Height(8)
+	}
+
+	var areaView string
+	if m.isViewMode {
+		// В режиме просмотра показываем только значение без курсора
+		areaView = area.Value()
+		if areaView == "" {
+			areaView = " "
+		}
+	} else {
+		areaView = area.View()
+	}
+
+	return areaStyle.Render(areaView)
 }
 
 // attemptAddSecret - метод обработки добавления секрета
@@ -161,6 +234,12 @@ func (m TextSecretModel) attemptAddSecret(name string, text string) tea.Cmd {
 		if len(text) == 0 {
 			return messages.ErrorMsg("Пустой текст секрета")
 		}
-		return messages.AddSecretTextMsg{Data: messages.SecretText{Name: name, Type: models.SecretTextType, Text: text}}
+		return messages.AddSecretTextMsg{
+			Data: messages.SecretText{
+				Name: name,
+				Type: models.SecretTextType,
+				Text: text,
+			},
+		}
 	}
 }

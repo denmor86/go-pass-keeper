@@ -147,8 +147,8 @@ type AddSecretBinaryMsg struct {
 	Data SecretBinary
 }
 
-// GetSecretBinarytMsg - сообщение для получения секрета с бинарными данными
-type GetSecretBinarytMsg struct {
+// GetSecretBinaryMsg - сообщение для получения секрета с бинарными данными
+type GetSecretBinaryMsg struct {
 	Data SecretBinary
 }
 
@@ -164,7 +164,7 @@ func (msg *AddSecretBinaryMsg) ToModel(key []byte) (*models.SecretInfo, []byte, 
 }
 
 // FromModel - метод формирует информацию о секрете, шифрованный контент и формирует сообщение
-func (msg *GetSecretBinarytMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
+func (msg *GetSecretBinaryMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
 	secret := &models.SecretBinary{}
 	err := secret.Decrypt(key, content)
 	if err != nil {
@@ -199,7 +199,7 @@ func ToMessage(key []byte, info *models.SecretInfo, content []byte) tea.Msg {
 		}
 		return msg
 	case models.SecretBinaryType:
-		msg := &GetSecretBinarytMsg{}
+		msg := &GetSecretBinaryMsg{}
 		err := msg.FromModel(key, info, content)
 		if err != nil {
 			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
