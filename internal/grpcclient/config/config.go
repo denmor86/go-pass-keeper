@@ -23,12 +23,12 @@ func (cm *Config) Load() *settings.Settings {
 		return cm.DefaultConfig()
 	}
 
-	var config settings.Settings
-	if json.Unmarshal(data, &config) != nil {
-		return cm.DefaultConfig()
+	config := cm.DefaultConfig()
+	if json.Unmarshal(data, config) != nil {
+		return config
 	}
 
-	return &config
+	return config
 }
 
 func (cm *Config) Save(config *settings.Settings) error {
@@ -46,5 +46,6 @@ func (cm *Config) DefaultConfig() *settings.Settings {
 		ServerURL:  "localhost",
 		ServerPort: "8080",
 		Timeout:    30,
+		Secret:     "secret",
 	}
 }

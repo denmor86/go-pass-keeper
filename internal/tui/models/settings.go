@@ -20,10 +20,18 @@ type SettingsModel struct {
 	connection *settings.Settings
 }
 
+// Константы для именованных индексов полей
+const (
+	fieldServerURL = iota
+	fieldServerPort
+	fieldTimeout
+	fieldSecretPassword
+)
+
 // NewSettingsModel - метод для создания окна настроек
 func NewSettingsModel(connection *settings.Settings) SettingsModel {
 	model := SettingsModel{
-		inputs:     make([]textinput.Model, 3),
+		inputs:     make([]textinput.Model, 4),
 		connection: connection,
 	}
 
@@ -35,18 +43,24 @@ func NewSettingsModel(connection *settings.Settings) SettingsModel {
 		t.CharLimit = 50
 
 		switch i {
-		case 0:
+		case fieldServerURL:
 			t.Placeholder = "localhost"
 			t.Prompt = "URL сервера: "
 			t.SetValue(connection.ServerURL)
-		case 1:
+		case fieldServerPort:
 			t.Placeholder = "8080"
 			t.Prompt = "Порт: "
 			t.SetValue(connection.ServerPort)
-		case 2:
+		case fieldTimeout:
 			t.Placeholder = "30"
 			t.Prompt = "Таймаут (секунды): "
 			t.SetValue(fmt.Sprintf("%d", connection.Timeout))
+		case fieldSecretPassword:
+			t.Placeholder = "Секрет"
+			t.Prompt = "Секрет: "
+			t.EchoMode = textinput.EchoPassword
+			t.EchoCharacter = '•'
+			t.SetValue(connection.Secret)
 		}
 
 		model.inputs[i] = t
@@ -77,12 +91,13 @@ func (m SettingsModel) Update(msg tea.Msg) (SettingsModel, tea.Cmd) {
 			if s == "enter" {
 				// Сохраняем настройки
 				newConnection := settings.Settings{
-					ServerURL:  m.inputs[0].Value(),
-					ServerPort: m.inputs[1].Value(),
+					ServerURL:  m.inputs[fieldServerURL].Value(),
+					ServerPort: m.inputs[fieldServerPort].Value(),
+					Secret:     m.inputs[fieldSecretPassword].Value(),
 				}
 
 				// Парсим таймаут
-				if timeout, err := strconv.Atoi(m.inputs[2].Value()); err == nil {
+				if timeout, err := strconv.Atoi(m.inputs[fieldTimeout].Value()); err == nil {
 					newConnection.Timeout = timeout
 				} else {
 					newConnection.Timeout = 30

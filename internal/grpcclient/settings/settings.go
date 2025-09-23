@@ -9,7 +9,7 @@ type Settings struct {
 	ServerURL  string `json:"server_url"`
 	ServerPort string `json:"server_port"`
 	Timeout    int    `json:"timeout"`
-	secret     string // не сохраняем для секурности
+	Secret     string // не сохраняем для секурности
 }
 
 func (s *Settings) ServerAddress() string {
