@@ -58,11 +58,11 @@ func TestAddSecret(t *testing.T) {
 		{
 			TestName: "Success. Add secret #1",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "binary"}, nil)
+				mockSecrets.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "binary", Created: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC), Updated: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)}, nil)
 			},
 			ExpectedError: nil,
 			Request:       &pb.AddSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
-			Responce:      &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}},
+			Responce:      &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary", Created: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)), Updated: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC))}},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
@@ -144,11 +144,13 @@ func TestGetSecret(t *testing.T) {
 		{
 			TestName: "Success. Get secret #1",
 			SetupMocks: func() {
-				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "binary", Content: []byte("0x100")}, nil)
+				mockSecrets.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&models.SecretData{
+					ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "binary", Content: []byte("0x100"), Created: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC), Updated: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC),
+				}, nil)
 			},
 			ExpectedError: nil,
 			Request:       &pb.GetSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret"}},
-			Responce:      &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
+			Responce:      &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary", Created: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)), Updated: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC))}, Content: []byte("0x100")},
 			UserId:        uuid.MustParse(user_uuid),
 		},
 		{
