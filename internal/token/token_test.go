@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -119,6 +120,92 @@ func TestParseJWT(t *testing.T) {
 			require.NoError(t, err, "unexpected error")
 			require.NotNil(t, claims, "claims should not be nil")
 			assert.Equal(t, validUserID, claims.Id, "user ID in claims doesn't match")
+		})
+	}
+}
+
+func TestJWT_DecodeUserId(t *testing.T) {
+
+	jwtSecret := "valid-secret-key"
+	j, err := NewJWT(jwtSecret)
+	require.NoError(t, err)
+
+	userID := "123e4567-e89b-12d3-a456-426614174000"
+
+	testCases := []struct {
+		TestName       string
+		SetupMocks     func() string
+		Token          string
+		ExpectedUserID string
+		ExpectedError  string
+	}{
+		{
+			TestName: "Success. Decode valid token",
+			SetupMocks: func() string {
+				token, err := j.BuildJWT(userID)
+				require.NoError(t, err)
+				return token
+			},
+			ExpectedUserID: userID,
+			ExpectedError:  "",
+		},
+		{
+			TestName: "Error. Invalid token signature",
+			SetupMocks: func() string {
+				// Создаем токен с другим секретом
+				otherJWT, _ := NewJWT("different-secret-key")
+				token, err := otherJWT.BuildJWT(userID)
+				require.NoError(t, err)
+				return token
+			},
+			ExpectedUserID: "",
+			ExpectedError:  "signature is invalid",
+		},
+		{
+			TestName: "Error. Empty token",
+			SetupMocks: func() string {
+				return ""
+			},
+			Token:          "",
+			ExpectedUserID: "",
+			ExpectedError:  "token contains an invalid number of segments",
+		},
+		{
+			TestName: "Error. Expired token",
+			SetupMocks: func() string {
+				// Создаем токен с истекшим сроком
+				now := time.Now().Add(-2 * time.Hour)
+				token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
+					StandardClaims: jwt.StandardClaims{
+						Id:        userID,
+						ExpiresAt: now.Unix(),
+						IssuedAt:  now.Unix(),
+						NotBefore: now.Unix(),
+					},
+				})
+				tokenString, err := token.SignedString([]byte(jwtSecret))
+				require.NoError(t, err)
+				return tokenString
+			},
+			ExpectedUserID: "",
+			ExpectedError:  "token is expired",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			token := tc.SetupMocks()
+
+			userID, err := j.DecodeUserId(token)
+
+			if tc.ExpectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.ExpectedError)
+				assert.Equal(t, "", userID)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.ExpectedUserID, userID)
+			}
 		})
 	}
 }
