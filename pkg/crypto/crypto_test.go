@@ -112,3 +112,117 @@ func TestEncrypt(t *testing.T) {
 		})
 	}
 }
+
+func TestDecrypt(t *testing.T) {
+	password := "test-password"
+	salt, err := GenerateSalt()
+	require.NoError(t, err)
+
+	key, err := MakeCryptoKey(password, salt)
+	require.NoError(t, err)
+
+	testData := []byte("secret data for encryption test")
+
+	testCases := []struct {
+		TestName      string
+		SetupData     func() []byte
+		Key           []byte
+		ExpectedData  []byte
+		ExpectedError string
+	}{
+		{
+			TestName: "Success. Decrypt valid data",
+			SetupData: func() []byte {
+				encrypted, err := Encrypt(key, testData)
+				require.NoError(t, err)
+				return encrypted
+			},
+			Key:           key,
+			ExpectedData:  testData,
+			ExpectedError: "",
+		},
+		{
+			TestName: "Error. Wrong key",
+			SetupData: func() []byte {
+				encrypted, err := Encrypt(key, testData)
+				require.NoError(t, err)
+				return encrypted
+			},
+			Key:           []byte("wrong-key-32-bytes-long-key!"),
+			ExpectedData:  nil,
+			ExpectedError: "invalid key size",
+		},
+		{
+			TestName: "Error. Data too short",
+			SetupData: func() []byte {
+				return []byte("short")
+			},
+			Key:           key,
+			ExpectedData:  nil,
+			ExpectedError: "encrypted data too short",
+		},
+		{
+			TestName: "Error. Empty data",
+			SetupData: func() []byte {
+				return []byte{}
+			},
+			Key:           key,
+			ExpectedData:  nil,
+			ExpectedError: "encrypted data too short",
+		},
+		{
+			TestName: "Error. Nil data",
+			SetupData: func() []byte {
+				return nil
+			},
+			Key:           key,
+			ExpectedData:  nil,
+			ExpectedError: "encrypted data too short",
+		},
+		{
+			TestName: "Error. Corrupted data",
+			SetupData: func() []byte {
+				encrypted, err := Encrypt(key, testData)
+				require.NoError(t, err)
+				// Повреждаем данные (изменяем последний байт)
+				encrypted[len(encrypted)-1] ^= 0xFF
+				return encrypted
+			},
+			Key:           key,
+			ExpectedData:  nil,
+			ExpectedError: "decryption failed",
+		},
+		{
+			TestName: "Error. Tampered nonce",
+			SetupData: func() []byte {
+				encrypted, err := Encrypt(key, testData)
+				require.NoError(t, err)
+				// Изменяем nonce (первые 12 байт для GCM)
+				if len(encrypted) >= 12 {
+					encrypted[0] ^= 0xFF
+				}
+				return encrypted
+			},
+			Key:           key,
+			ExpectedData:  nil,
+			ExpectedError: "decryption failed",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			data := tc.SetupData()
+
+			result, err := Decrypt(tc.Key, data)
+
+			if tc.ExpectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.ExpectedError)
+				assert.Nil(t, result)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.ExpectedData, result)
+			}
+		})
+	}
+}
