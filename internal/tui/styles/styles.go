@@ -20,7 +20,7 @@ var (
 // Базовые стили
 var (
 	ContainerStyle = lipgloss.NewStyle().
-			Padding(1, 2).
+			Padding(0, 2).
 			Background(BackgroundColor)
 
 	TitleStyle = lipgloss.NewStyle().
@@ -89,11 +89,10 @@ var (
 				Margin(0, 1).
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(DisabledColor).
-				Height(1).
 				Align(lipgloss.Center).
 				AlignVertical(lipgloss.Center)
 
-	ActiveSmallButtonStyle = SmallButtonStyle.Copy().
+	ActiveSmallButtonStyle = SmallButtonStyle.
 				Foreground(TextPrimary).
 				Background(SecondaryColor).
 				BorderForeground(AccentColor).

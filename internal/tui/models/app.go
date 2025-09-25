@@ -42,10 +42,11 @@ type AppModel struct {
 	username   string
 	token      string
 	config     *config.Config
+	version    string
 }
 
 // NewAppModel - метод для создания главного окна
-func NewAppModel(config *config.Config) AppModel {
+func NewAppModel(config *config.Config, version string) AppModel {
 
 	connection := config.Load()
 	return AppModel{
@@ -58,6 +59,7 @@ func NewAppModel(config *config.Config) AppModel {
 		username: "",
 		token:    "",
 		config:   config,
+		version:  version,
 	}
 }
 
@@ -195,17 +197,25 @@ func (m AppModel) renderMainView() string {
 			Width(50).
 			Render("Выберите действие для продолжения работы"),
 
-		lipgloss.NewStyle().Height(2).Render(""),
+		lipgloss.NewStyle().Height(1).Render(""),
 		lipgloss.JoinVertical(lipgloss.Center,
 			m.renderLoginButton(),
 			m.renderRegisterButton(),
-			m.renderSecretButton()),
-		lipgloss.NewStyle().Height(2).Render(""),
-		m.renderSettingsButton(),
+			m.renderSecretButton(),
+			m.renderSettingsButton(),
+		),
+
 		lipgloss.NewStyle().Height(1).Render(""),
 
 		styles.HelpStyle.
 			Render("↑/↓: выбор • Enter: подтвердить • S: настройки • ESC: выход"),
+
+		// Добавляем версию внизу
+		lipgloss.NewStyle().Height(1).Render(""),
+		lipgloss.NewStyle().
+			Foreground(styles.AccentColor).
+			Border(lipgloss.NormalBorder()).
+			Render(m.version),
 	)
 
 	return styles.ContainerStyle.
@@ -290,7 +300,7 @@ func (m AppModel) renderSecretButton() string {
 
 // renderSettingsButton - метод отрисовки кнопки настроек клиента
 func (m AppModel) renderSettingsButton() string {
-	text := "⚙️ Настройки подключения"
+	text := "⚙️ Настройки"
 	if SettingsButton == m.focused {
 		return styles.ActiveSmallButtonStyle.
 			Margin(0, 0, 1, 0).
