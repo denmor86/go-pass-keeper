@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-pass-keeper/pkg/logger"
 	pb "go-pass-keeper/pkg/proto"
+	"net/url"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -48,6 +49,10 @@ func UseUserOptions(opts ...grpc.DialOption) UserClientOption {
 
 // Connect - метод устанавливает соединение с сервером
 func (uc *UserClient) Connect(ctx context.Context) error {
+	_, err := url.ParseRequestURI(uc.serverAddr)
+	if err != nil {
+		return fmt.Errorf("invalid server address: %w", err)
+	}
 	conn, err := grpc.NewClient(uc.serverAddr, uc.opts...)
 	if err != nil {
 		logger.Error("Failed to connect to server", err.Error())

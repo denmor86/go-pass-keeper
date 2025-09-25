@@ -7,6 +7,7 @@ import (
 	"go-pass-keeper/internal/models"
 	"go-pass-keeper/pkg/logger"
 	pb "go-pass-keeper/pkg/proto"
+	"net/url"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -56,6 +57,10 @@ func UseKeeperOptions(opts ...grpc.DialOption) KeeperClientOption {
 
 // Connect - метод устанавливает соединение с сервером
 func (uc *KeeperClient) Connect(ctx context.Context) error {
+	_, err := url.ParseRequestURI(uc.serverAddr)
+	if err != nil {
+		return fmt.Errorf("invalid server address: %w", err)
+	}
 	conn, err := grpc.NewClient(uc.serverAddr, uc.opts...)
 	if err != nil {
 		logger.Error("Failed to connect to server", err.Error())
@@ -78,6 +83,9 @@ func (uc *KeeperClient) Close() error {
 
 // AddSecret - метод добавляет секрет
 func (uc *KeeperClient) AddSecret(info *models.SecretInfo, content []byte) (*models.SecretInfo, error) {
+	if info == nil {
+		return nil, fmt.Errorf("invalid info")
+	}
 	if uc.client == nil {
 		return nil, fmt.Errorf("client not connected")
 	}
