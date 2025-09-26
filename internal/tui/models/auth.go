@@ -14,8 +14,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// LoginModel - модель окна авторизации пользователя
-type LoginModel struct {
+// AuthModel - модель окна авторизации пользователя
+type AuthModel struct {
 	inputs     []textinput.Model
 	focused    int
 	err        messages.ErrorMsg
@@ -23,9 +23,9 @@ type LoginModel struct {
 	connection *settings.Settings
 }
 
-// NewLoginModel - метод для создания окна авторизации пользователя
-func NewLoginModel(connection *settings.Settings) LoginModel {
-	login := LoginModel{
+// NewAuthModel - метод для создания окна авторизации пользователя
+func NewAuthModel(connection *settings.Settings) AuthModel {
+	login := AuthModel{
 		inputs:     make([]textinput.Model, 2),
 		connection: connection,
 	}
@@ -58,12 +58,12 @@ func NewLoginModel(connection *settings.Settings) LoginModel {
 }
 
 // Init - метод инициализации окна
-func (m LoginModel) Init() tea.Cmd {
+func (m AuthModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
 // Update - метод для обновления окна по внешним сообщениям
-func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
+func (m AuthModel) Update(msg tea.Msg) (AuthModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -128,7 +128,7 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 }
 
 // View - метод для отрисовки окна, в зависимости от текущего состояния
-func (m LoginModel) View() string {
+func (m AuthModel) View() string {
 	// Поля ввода
 	fields := make([]string, len(m.inputs))
 	for i := range m.inputs {
@@ -231,7 +231,7 @@ func (m LoginModel) View() string {
 }
 
 // attemptLogin - метод обработки прохождения авторизации пользователя
-func (m LoginModel) attemptLogin(username string, password string) tea.Cmd {
+func (m AuthModel) attemptLogin(username string, password string) tea.Cmd {
 	return func() tea.Msg {
 		if username == "" || password == "" {
 			return messages.ErrorMsg("заполните все поля")

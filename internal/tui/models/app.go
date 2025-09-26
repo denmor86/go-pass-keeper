@@ -33,7 +33,7 @@ const (
 // AppModel - модель главного окна
 type AppModel struct {
 	state      AppState
-	login      LoginModel
+	auth       AuthModel
 	register   RegisterModel
 	secrets    ViewerModel
 	settings   SettingsModel
@@ -51,7 +51,7 @@ func NewAppModel(config *config.Config, version string) AppModel {
 	connection := config.Load()
 	return AppModel{
 		state:    MainState,
-		login:    NewLoginModel(connection),
+		auth:     NewAuthModel(connection),
 		register: NewRegisterModel(connection),
 		secrets:  NewViewerModel(connection),
 		settings: NewSettingsModel(connection),
@@ -86,7 +86,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case LoginState, RegisterState:
 				// Возврат на главный экран
 				m.state = MainState
-				m.login.err = ""
+				m.auth.err = ""
 				m.register.err = ""
 				return m, nil
 			case SettingsState:
@@ -108,7 +108,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messages.ErrorMsg:
 		switch m.state {
 		case LoginState:
-			m.login.err = msg
+			m.auth.err = msg
 		case RegisterState:
 			m.register.err = msg
 		}
@@ -147,7 +147,7 @@ func (m AppModel) View() string {
 	case MainState:
 		return m.renderMainView()
 	case LoginState:
-		return m.login.View()
+		return m.auth.View()
 	case RegisterState:
 		return m.register.View()
 	case SecretState:
@@ -164,8 +164,8 @@ func (m AppModel) updateWindowsSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) 
 	m.windowSize = msg
 
 	// Передаем размеры окна всем дочерним моделям
-	updatedLogin, loginCmd := m.login.Update(msg)
-	m.login = updatedLogin
+	updatedLogin, loginCmd := m.auth.Update(msg)
+	m.auth = updatedLogin
 
 	updatedRegister, registerCmd := m.register.Update(msg)
 	m.register = updatedRegister
@@ -330,7 +330,7 @@ func (m AppModel) handleMainUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 			switch m.focused {
 			case LoginButton:
 				m.state = LoginState
-				return m, m.login.inputs[0].Focus()
+				return m, m.auth.inputs[0].Focus()
 			case RegisterButton:
 				m.state = RegisterState
 				return m, m.register.inputs[0].Focus()
@@ -351,8 +351,8 @@ func (m AppModel) handleMainUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
 
 // handleLoginUpdate - метод обработчик действий на кнопке авторизации пользователя
 func (m AppModel) handleLoginUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
-	updatedModel, cmd := m.login.Update(msg)
-	m.login = updatedModel
+	updatedModel, cmd := m.auth.Update(msg)
+	m.auth = updatedModel
 	return m, cmd
 }
 
