@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+option go_package = "pkg/proto";
+
+package api;
+
+import "google/protobuf/timestamp.proto";
+
+message SecretMetadata {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  optional google.protobuf.Timestamp created = 4; 
+  optional google.protobuf.Timestamp updated = 5; 
+}
+
+service Keeper {
+  rpc GetSecrets(GetSecretsRequest) returns (GetSecretsResponse);
+  rpc AddSecret(AddSecretRequest) returns (AddSecretResponse);
+  rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+  rpc EditSecret(EditSecretRequest) returns (EditSecretResponse);
+}
+
+message GetSecretsRequest {
+}
+
+message GetSecretsResponse {
+  repeated SecretMetadata secrets = 1;
+}
+
+
+message AddSecretRequest {
+  SecretMetadata meta = 1;
+  bytes content = 2;
+}
+
+message AddSecretResponse {
+  SecretMetadata meta = 1;
+}
+
+message GetSecretRequest {
+  SecretMetadata meta = 1;
+}
+
+message GetSecretResponse {
+  SecretMetadata meta = 1;
+  bytes content = 2;
+}
+
+message DeleteSecretRequest {
+  SecretMetadata meta = 1;
+}
+
+message DeleteSecretResponse {
+  SecretMetadata meta = 1;
+}
+
+message EditSecretRequest {
+  SecretMetadata meta = 1;
+  bytes content = 2;
+}
+
+message EditSecretResponse {
+  SecretMetadata meta = 1;
+}

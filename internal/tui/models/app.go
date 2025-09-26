@@ -1,0 +1,383 @@
+package models
+
+import (
+	"go-pass-keeper/internal/grpcclient/config"
+	"go-pass-keeper/internal/tui/messages"
+	"go-pass-keeper/internal/tui/styles"
+
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+// Тип переменной состояние перехода
+type AppState int
+
+// Состояние переходов
+const (
+	MainState AppState = iota
+	LoginState
+	RegisterState
+	SecretState
+	SettingsState
+)
+
+// Кнопки на главном окне
+const (
+	LoginButton = iota
+	RegisterButton
+	SecretButton
+	SettingsButton
+)
+
+// AppModel - модель главного окна
+type AppModel struct {
+	state      AppState
+	auth       AuthModel
+	register   RegisterModel
+	secrets    ViewerModel
+	settings   SettingsModel
+	windowSize tea.WindowSizeMsg
+	focused    int
+	username   string
+	token      string
+	config     *config.Config
+	version    string
+}
+
+// NewAppModel - метод для создания главного окна
+func NewAppModel(config *config.Config, version string) AppModel {
+
+	connection := config.Load()
+	return AppModel{
+		state:    MainState,
+		auth:     NewAuthModel(connection),
+		register: NewRegisterModel(connection),
+		secrets:  NewViewerModel(connection),
+		settings: NewSettingsModel(connection),
+		focused:  0,
+		username: "",
+		token:    "",
+		config:   config,
+		version:  version,
+	}
+}
+
+// Init - метод инициализации окна
+func (m AppModel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+// Update - метод для обновления окна по внешним сообщениям
+func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		return m.updateWindowsSize(msg)
+
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+		case tea.KeyEsc:
+			// Обработка ESC в зависимости от текущего состояния
+			switch m.state {
+			case LoginState, RegisterState:
+				// Возврат на главный экран
+				m.state = MainState
+				m.auth.err = ""
+				m.register.err = ""
+				return m, nil
+			case SettingsState:
+				// Выход из главного экрана или просмотра
+				m.state = MainState
+				return m, nil
+			case MainState:
+				// Выход из приложения
+				return m, tea.Quit
+			}
+		}
+
+	case messages.AuthSuccessMsg:
+		m.state = MainState
+		m.username = msg.Username
+		m.token = msg.Token
+		return m.handleSecretUpdate(msg)
+
+	case messages.ErrorMsg:
+		switch m.state {
+		case LoginState:
+			m.auth.err = msg
+		case RegisterState:
+			m.register.err = msg
+		}
+		return m, nil
+
+	case messages.GotoMainPageMsg:
+		m.state = MainState
+		return m, nil
+
+	case messages.ConfigUpdatedMsg:
+		m.config.Save(&msg.Connection)
+		m.state = MainState
+		return m, nil
+	}
+
+	// Обновление текущего состояния
+	switch m.state {
+	case MainState:
+		return m.handleMainUpdate(msg)
+	case LoginState:
+		return m.handleLoginUpdate(msg)
+	case RegisterState:
+		return m.handleRegisterUpdate(msg)
+	case SecretState:
+		return m.handleSecretUpdate(msg)
+	case SettingsState:
+		return m.handleSettingsUpdate(msg)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+// View - метод для отрисовки окна, в зависимости от текущего состояния
+func (m AppModel) View() string {
+	switch m.state {
+	case MainState:
+		return m.renderMainView()
+	case LoginState:
+		return m.auth.View()
+	case RegisterState:
+		return m.register.View()
+	case SecretState:
+		return m.secrets.View()
+	case SettingsState:
+		return m.settings.View()
+	default:
+		return "Неизвестное состояние"
+	}
+}
+
+// updateWindowsSize - метод обновления размеров окон
+func (m AppModel) updateWindowsSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.windowSize = msg
+
+	// Передаем размеры окна всем дочерним моделям
+	updatedLogin, loginCmd := m.auth.Update(msg)
+	m.auth = updatedLogin
+
+	updatedRegister, registerCmd := m.register.Update(msg)
+	m.register = updatedRegister
+
+	updatedViewer, secretsCmd := m.secrets.Update(msg)
+	m.secrets = updatedViewer
+
+	updatedSettings, settingsCmd := m.settings.Update(msg)
+	m.settings = updatedSettings
+
+	return m, tea.Batch(loginCmd, registerCmd, secretsCmd, settingsCmd)
+}
+
+// renderMainView - метод отрисовки основного окна
+func (m AppModel) renderMainView() string {
+	// Статус пользователя
+	userStatus := m.getUserStatus()
+
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		styles.TitleStyle.
+			Width(50).
+			Render("✨ Добро пожаловать!"),
+
+		userStatus,
+		lipgloss.NewStyle().Height(1).Render(""),
+
+		styles.SubtitleStyle.
+			Width(50).
+			Render("Выберите действие для продолжения работы"),
+
+		lipgloss.NewStyle().Height(1).Render(""),
+		lipgloss.JoinVertical(lipgloss.Center,
+			m.renderLoginButton(),
+			m.renderRegisterButton(),
+			m.renderSecretButton(),
+			m.renderSettingsButton(),
+		),
+
+		lipgloss.NewStyle().Height(1).Render(""),
+
+		styles.HelpStyle.
+			Render("↑/↓: выбор • Enter: подтвердить • S: настройки • ESC: выход"),
+
+		// Добавляем версию внизу
+		lipgloss.NewStyle().Height(1).Render(""),
+		lipgloss.NewStyle().
+			Foreground(styles.AccentColor).
+			Border(lipgloss.NormalBorder()).
+			Render(m.version),
+	)
+
+	return styles.ContainerStyle.
+		Width(m.windowSize.Width).
+		Height(m.windowSize.Height).
+		Render(
+			lipgloss.Place(
+				m.windowSize.Width, m.windowSize.Height,
+				lipgloss.Center, lipgloss.Center,
+				content,
+				lipgloss.WithWhitespaceChars(" "),
+				lipgloss.WithWhitespaceForeground(styles.BackgroundColor),
+			),
+		)
+}
+
+// getUserStatus - метод для формирования текущего статуса авторизации
+func (m AppModel) getUserStatus() string {
+	if m.isAuthorized() {
+		return lipgloss.NewStyle().
+			Foreground(styles.SuccessColor).
+			Bold(true).
+			Padding(0, 1).
+			Render("👤 Вы вошли как: " + m.username)
+	}
+	return lipgloss.NewStyle().
+		Foreground(styles.TextSecondary).
+		Italic(true).
+		Render("🔒 Не авторизован")
+}
+
+// renderLoginButton - метод отрисовки кнопки авторизации пользователя
+func (m AppModel) renderLoginButton() string {
+	text := "🔐 Вход в систему"
+	if LoginButton == m.focused {
+		return styles.ActiveButtonStyle.
+			Margin(0, 0, 1, 0).
+			Render(text)
+	}
+	return styles.ButtonStyle.
+		Margin(0, 0, 1, 0).
+		Render(text)
+}
+
+// renderRegisterButton - метод отрисовки кнопки регистрации пользователя
+func (m AppModel) renderRegisterButton() string {
+	text := "📝 Регистрация"
+	if RegisterButton == m.focused {
+		return styles.ActiveButtonStyle.
+			Margin(0, 0, 1, 0).
+			Render(text)
+	}
+	return styles.ButtonStyle.
+		Margin(0, 0, 1, 0).
+		Render(text)
+}
+
+// renderSecretButton - метод отрисовки кнопки просмотра секретов
+func (m AppModel) renderSecretButton() string {
+	text := "👁️ Просмотр"
+
+	if SecretButton == m.focused {
+		if m.isAuthorized() {
+			return styles.ActiveButtonStyle.
+				Margin(0, 0, 1, 0).
+				Render(text)
+		}
+		return styles.DisabledActiveButtonStyle.
+			Margin(0, 0, 1, 0).
+			Render(text + " (требуется вход)")
+	}
+	if m.isAuthorized() {
+		return styles.ButtonStyle.
+			Margin(0, 0, 1, 0).
+			Render(text)
+	}
+	return styles.DisabledButtonStyle.
+		Margin(0, 0, 1, 0).
+		Render(text + " (требуется вход)")
+
+}
+
+// renderSettingsButton - метод отрисовки кнопки настроек клиента
+func (m AppModel) renderSettingsButton() string {
+	text := "⚙️ Настройки"
+	if SettingsButton == m.focused {
+		return styles.ActiveSmallButtonStyle.
+			Margin(0, 0, 1, 0).
+			Render(text)
+	}
+	return styles.SmallButtonStyle.
+		Margin(0, 0, 1, 0).
+		Render(text)
+}
+
+// handleMainUpdate - метод обработчик действий на кнопках основного окна
+func (m AppModel) handleMainUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "up", "k":
+			if m.focused >= RegisterButton {
+				m.focused--
+			}
+			return m, nil
+		case "down", "j":
+			if m.focused < SettingsButton {
+				m.focused++
+			}
+			return m, nil
+		case "enter":
+			switch m.focused {
+			case LoginButton:
+				m.state = LoginState
+				return m, m.auth.inputs[0].Focus()
+			case RegisterButton:
+				m.state = RegisterState
+				return m, m.register.inputs[0].Focus()
+			case SecretButton:
+				if m.isAuthorized() {
+					m.state = SecretState
+					return m, m.secrets.Init()
+				}
+				return m, nil
+			case SettingsButton:
+				m.state = SettingsState
+				return m, m.settings.inputs[0].Focus()
+			}
+		}
+	}
+	return m, nil
+}
+
+// handleLoginUpdate - метод обработчик действий на кнопке авторизации пользователя
+func (m AppModel) handleLoginUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
+	updatedModel, cmd := m.auth.Update(msg)
+	m.auth = updatedModel
+	return m, cmd
+}
+
+// handleRegisterUpdate - метод обработчик действий на кнопке регистрации пользователя
+func (m AppModel) handleRegisterUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
+	updatedModel, cmd := m.register.Update(msg)
+	m.register = updatedModel
+	return m, cmd
+}
+
+// handleSecretUpdate - метод обработчик действий на кнопке просмотра секретов
+func (m AppModel) handleSecretUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
+	updatedModel, cmd := m.secrets.Update(msg)
+	m.secrets = updatedModel
+	return m, cmd
+}
+
+// handleSettingsUpdate - метод обработчик действий на кнопке настроек клиента
+func (m AppModel) handleSettingsUpdate(msg tea.Msg) (AppModel, tea.Cmd) {
+	updatedModel, cmd := m.settings.Update(msg)
+	m.settings = updatedModel
+	return m, cmd
+}
+
+// isAuthorized - метод определения наличия авторизации пользователя
+func (m AppModel) isAuthorized() bool {
+	return len(m.token) > 0
+}

@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+    
+        {
+            "name": "Launch TUI Client",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/client",
+            "console": "externalTerminal",
+            "buildFlags": "-ldflags '-X main.buildVersion=v1.0.0 -X main.buildDate=2025.09.25.15.30.03 -X main.buildCommit=ff02eb0827a266297945cd7788fd3026221bf525'"
+        },
+        {
+            "name": "Launch Server",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/server",
+            "args": ["-a=localhost:8080", "-d=postgres://postgres:root@localhost:5432/go_pass_keeper?sslmode=disable"],
+            "console": "externalTerminal",
+        }
+    ]
+}
