@@ -180,7 +180,7 @@ func (m SettingsModel) View() string {
 		// Кнопки действий
 		lipgloss.JoinHorizontal(
 			lipgloss.Center,
-			styles.ButtonStyle.Render("Enter - Сохранить"),
+			styles.ButtonStyle.Render("Enter - Применить"),
 			styles.DividerStyle.Render(),
 			styles.ButtonStyle.Render("ESC - Отмена"),
 		),

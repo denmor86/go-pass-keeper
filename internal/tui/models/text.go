@@ -17,15 +17,15 @@ type TextSecretModel struct {
 	textArea   textarea.Model
 	focused    bool
 	windowSize tea.WindowSizeMsg
-	isViewMode bool                // Флаг режима просмотра
-	secretData messages.SecretText // Данные для просмотра
+	isEditMode bool   // Флаг режима редактирования
+	sid        string // id для редактирования
 }
 
 // NewTextSecretModel - метод создания модель окна создания/просмотра текстового секрета
 func NewTextSecretModel() TextSecretModel {
 	model := TextSecretModel{
 		focused:    false,
-		isViewMode: false,
+		isEditMode: false,
 	}
 
 	model.nameInput = textinput.New()
@@ -59,9 +59,9 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 		return m, nil
 
 	case messages.GetSecretTextMsg:
-		// Переключаемся в режим просмотра при получении данных
-		m.isViewMode = true
-		m.secretData = msg.Data
+		// Переключаемся в режим редактирования при получении данных
+		m.isEditMode = true
+		m.sid = msg.ID
 
 		// Заполняем поля данными для просмотра
 		m.nameInput.SetValue(msg.Data.Name)
@@ -69,18 +69,6 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		// В режиме просмотра обрабатываем только ESC
-		if m.isViewMode {
-			switch msg.String() {
-			case "esc":
-				m.isViewMode = false
-				return m, func() tea.Msg {
-					return messages.SecretAddCancelMsg{}
-				}
-			}
-			return m, nil
-		}
-
 		// Режим редактирования
 		switch msg.String() {
 		case "tab":
@@ -95,18 +83,18 @@ func (m TextSecretModel) Update(msg tea.Msg) (TextSecretModel, tea.Cmd) {
 			}
 
 		case "enter":
+			if m.isEditMode {
+				m.isEditMode = false
+				return m, m.attemptEditSecret(m.sid, m.nameInput.Value(), m.textArea.Value())
+			}
 			return m, m.attemptAddSecret(m.nameInput.Value(), m.textArea.Value())
 
 		case "esc":
+			m.isEditMode = false
 			return m, func() tea.Msg {
 				return messages.SecretAddCancelMsg{}
 			}
 		}
-	}
-
-	// В режиме просмотра игнорируем ввод данных
-	if m.isViewMode {
-		return m, nil
 	}
 
 	var cmd tea.Cmd
@@ -125,18 +113,11 @@ func (m TextSecretModel) View() string {
 	title := "📝 Текст"
 	buttons := lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		styles.ButtonStyle.Render("Enter - Сохранить"),
+		styles.ButtonStyle.Render("Enter - Применить"),
 		styles.DividerStyle.Render(),
 		styles.ButtonStyle.Render("ESC - Отмена"),
 	)
 	hint := "Tab: переключение между полями"
-
-	// В режиме просмотра меняем заголовок, кнопки и подсказку
-	if m.isViewMode {
-		title = "👁️ Просмотр текста"
-		buttons = styles.ButtonStyle.Render("ESC - Закрыть")
-		hint = "Режим просмотра"
-	}
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
@@ -185,45 +166,22 @@ func (m TextSecretModel) View() string {
 // renderInputField - метод для отрисовки полей ввода
 func (m TextSecretModel) renderInputField(label string, input textinput.Model) string {
 	var inputStyle lipgloss.Style
-	if (!m.focused && !m.isViewMode) || (m.isViewMode && m.focused) {
+	if m.focused {
 		inputStyle = styles.FocusedInputFieldStyle
 	} else {
 		inputStyle = styles.InputFieldStyle
 	}
 
-	var fieldView string
-	if m.isViewMode {
-		// В режиме просмотра показываем только значение без курсора
-		fieldView = input.Value()
-		if fieldView == "" {
-			fieldView = " "
-		}
-	} else {
-		fieldView = input.View()
-	}
-
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		styles.InputLabelStyle.Render(label),
-		inputStyle.Render(fieldView),
+		inputStyle.Render(input.View()),
 	) + "\n"
 }
 
 // renderTextArea - метод отрисовки окна для ввода текста
 func (m TextSecretModel) renderTextArea(area textarea.Model) string {
-
-	var areaView string
-	if m.isViewMode {
-		// В режиме просмотра показываем только значение без курсора
-		areaView = area.Value()
-		if areaView == "" {
-			areaView = " "
-		}
-	} else {
-		areaView = area.View()
-	}
-
-	return styles.InputFieldStyle.Width(60).Height(12).Render(areaView)
+	return styles.InputFieldStyle.Width(60).Height(12).Render(area.View())
 }
 
 // attemptAddSecret - метод обработки добавления секрета
@@ -236,6 +194,26 @@ func (m TextSecretModel) attemptAddSecret(name string, text string) tea.Cmd {
 			return messages.ErrorMsg("Пустой текст секрета")
 		}
 		return messages.AddSecretTextMsg{
+			Data: messages.SecretText{
+				Name: name,
+				Type: models.SecretTextType,
+				Text: text,
+			},
+		}
+	}
+}
+
+// attemptAddSecret - метод обработки добавления секрета
+func (m TextSecretModel) attemptEditSecret(sid string, name string, text string) tea.Cmd {
+	return func() tea.Msg {
+		if len(name) == 0 {
+			return messages.ErrorMsg("Необходимо задать имя секрета")
+		}
+		if len(text) == 0 {
+			return messages.ErrorMsg("Пустой текст секрета")
+		}
+		return messages.EditSecretTextMsg{
+			ID: sid,
 			Data: messages.SecretText{
 				Name: name,
 				Type: models.SecretTextType,

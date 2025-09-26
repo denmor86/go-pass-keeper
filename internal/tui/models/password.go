@@ -17,8 +17,8 @@ type LoginSecretModel struct {
 	passwordInput textinput.Model
 	focused       int
 	windowSize    tea.WindowSizeMsg
-	isViewMode    bool                    // Флаг режима просмотра
-	secretData    messages.SecretPassword // Данные для просмотра
+	isEditMode    bool   // Флаг режима редактирования
+	sid           string // id для редактирования
 }
 
 // Индексы полей
@@ -32,7 +32,7 @@ const (
 func NewLoginSecretModel() LoginSecretModel {
 	model := LoginSecretModel{
 		focused:    fieldNameIndex,
-		isViewMode: false,
+		isEditMode: false,
 	}
 
 	model.nameInput = textinput.New()
@@ -74,9 +74,8 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 
 	case messages.GetSecretPasswordMsg:
 		// Переключаемся в режим просмотра при получении данных
-		m.isViewMode = true
-		m.secretData = msg.Data
-
+		m.isEditMode = true
+		m.sid = msg.ID
 		// Заполняем поля данными для просмотра
 		m.nameInput.SetValue(msg.Data.Name)
 		m.loginInput.SetValue(msg.Data.Login)
@@ -84,18 +83,6 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		// В режиме просмотра обрабатываем только ESC
-		if m.isViewMode {
-			switch msg.String() {
-			case "esc":
-				m.isViewMode = false
-				return m, func() tea.Msg {
-					return messages.SecretAddCancelMsg{}
-				}
-			}
-			return m, nil
-		}
-
 		// Режим редактирования
 		switch msg.String() {
 		case "tab", "shift+tab", "up", "down":
@@ -143,18 +130,18 @@ func (m LoginSecretModel) Update(msg tea.Msg) (LoginSecretModel, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 
 		case "enter":
+			if m.isEditMode {
+				m.isEditMode = false // сбрасываем режим
+				return m, m.attemptEditSecret(m.sid, m.nameInput.Value(), m.loginInput.Value(), m.passwordInput.Value())
+			}
 			return m, m.attemptAddSecret(m.nameInput.Value(), m.loginInput.Value(), m.passwordInput.Value())
 
 		case "esc":
+			m.isEditMode = false
 			return m, func() tea.Msg {
 				return messages.SecretAddCancelMsg{}
 			}
 		}
-	}
-
-	// В режиме просмотра игнорируем ввод данных
-	if m.isViewMode {
-		return m, nil
 	}
 
 	// Обновляем активное поле ввода
@@ -186,16 +173,10 @@ func (m LoginSecretModel) View() string {
 	title := "🔐 Логин и пароль"
 	buttons := lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		styles.ButtonStyle.Render("Enter - Сохранить"),
+		styles.ButtonStyle.Render("Enter - Применить"),
 		styles.DividerStyle.Render(),
 		styles.ButtonStyle.Render("ESC - Отмена"),
 	)
-
-	// В режиме просмотра меняем заголовок и кнопки
-	if m.isViewMode {
-		title = "👁️ Просмотр логина и пароля"
-		buttons = styles.ButtonStyle.Render("ESC - Назад")
-	}
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
@@ -229,20 +210,14 @@ func (m LoginSecretModel) View() string {
 // renderInputField - метод для отрисовки полей ввода
 func (m LoginSecretModel) renderInputField(label string, input textinput.Model, index int) string {
 	var inputStyle lipgloss.Style
-	if index == m.focused && !m.isViewMode {
+	if index == m.focused {
 		inputStyle = styles.FocusedInputFieldStyle
 	} else {
 		inputStyle = styles.InputFieldStyle
 	}
 
 	var fieldView string
-	if m.isViewMode {
-		value := input.Value()
-		fieldView = value
-		if fieldView == "" {
-			fieldView = " "
-		}
-	} else if index == m.focused {
+	if index == m.focused {
 		fieldView = input.View()
 	} else {
 		value := input.Value()
@@ -272,6 +247,30 @@ func (m LoginSecretModel) attemptAddSecret(name string, username string, passwor
 			return messages.ErrorMsg("Необходимо задать пароль")
 		}
 		return messages.AddSecretPasswordMsg{
+			Data: messages.SecretPassword{
+				Name:     name,
+				Type:     models.SecretPasswordType,
+				Login:    username,
+				Password: password,
+			},
+		}
+	}
+}
+
+// attemptEditSecret - метод обработки изменения секрета
+func (m LoginSecretModel) attemptEditSecret(sid string, name string, username string, password string) tea.Cmd {
+	return func() tea.Msg {
+		if len(name) == 0 {
+			return messages.ErrorMsg("Необходимо задать имя секрета")
+		}
+		if len(username) == 0 {
+			return messages.ErrorMsg("Необходимо задать пользователя")
+		}
+		if len(password) == 0 {
+			return messages.ErrorMsg("Необходимо задать пароль")
+		}
+		return messages.EditSecretPasswordMsg{
+			ID: sid,
 			Data: messages.SecretPassword{
 				Name:     name,
 				Type:     models.SecretPasswordType,

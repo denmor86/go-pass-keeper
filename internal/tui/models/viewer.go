@@ -68,29 +68,54 @@ func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		return m.updateWindowsSize(msg)
 
+	// обработка отмены выбора секрета
 	case messages.SecretAddCancelMsg:
 		m.state = ViewerListState
 		return m.handleAddState(msg)
-
+	// обаботка аутентификации (формирование токена и ключа)
 	case messages.AuthSuccessMsg:
 		return m.handleAuthAction(msg)
 
+	// запрос на добавление секрета (логин/пароль)
 	case messages.AddSecretPasswordMsg:
 		m.state = ViewerListState
 		return m, m.attemptAddSecret(&msg)
+	// запрос на изменение  секрета (логин/пароль)
+	case messages.EditSecretPasswordMsg:
+		m.state = ViewerListState
+		return m, m.attemptEditSecret(&msg)
 
+	// запрос на добавление секрета (банковская карта)
 	case messages.AddSecretCardMsg:
 		m.state = ViewerListState
 		return m, m.attemptAddSecret(&msg)
+	// запрос на изменение  секрета (банковская карта)
+	case messages.EditSecretCardMsg:
+		m.state = ViewerListState
+		return m, m.attemptEditSecret(&msg)
 
+	// запрос на добавление секрета (текстовые даные)
 	case messages.AddSecretTextMsg:
 		m.state = ViewerListState
 		return m, m.attemptAddSecret(&msg)
+	// запрос на изменение  секрета (текстовые даные)
+	case messages.EditSecretTextMsg:
+		m.state = ViewerListState
+		return m, m.attemptEditSecret(&msg)
 
+	// запрос на добавление секрета (бинарные данные)
 	case messages.AddSecretBinaryMsg:
 		m.state = ViewerListState
 		return m, m.attemptAddSecret(&msg)
+	// запрос на изменение  секрета (бинарные данные)
+	case messages.EditSecretBinaryMsg:
+		m.state = ViewerListState
+		return m, m.attemptEditSecret(&msg)
 
+	// запрос на обновление секретов
+	case messages.SecretUpdateMsg:
+		return m, m.attemptGetSecrets()
+	// обновление таблицы секретов
 	case messages.SecretRefreshMsg:
 		m.secrets = msg.Secrets
 		return m.refreshViewer(), nil
@@ -421,6 +446,30 @@ func (m ViewerModel) attemptAddSecret(converter messages.EncryptConverter) tea.C
 		_, err = client.AddSecret(info, content)
 		if err != nil {
 			return messages.ErrorMsg(fmt.Sprintf("Ошибка добавления секрета: %s", err.Error()))
+		}
+		return messages.SecretUpdateMsg{}
+	}
+}
+
+// attemptEditSecret - обработчик изменения секрета
+func (m ViewerModel) attemptEditSecret(converter messages.EncryptConverter) tea.Cmd {
+	return func() tea.Msg {
+		info, content, err := converter.ToModel(m.cryptoKey)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка изменения секрета: %s", err.Error()))
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(m.settings.Timeout)*time.Second)
+		client := grpcclient.NewKeeperClient(m.settings.ServerAddress(), m.token)
+		defer func() {
+			cancel()
+			client.Close()
+		}()
+		if err := client.Connect(ctx); err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка подключения к %s: %s", m.settings.ServerAddress(), err.Error()))
+		}
+		_, err = client.EditSecret(info, content)
+		if err != nil {
+			return messages.ErrorMsg(fmt.Sprintf("Ошибка изменения секрета: %s", err.Error()))
 		}
 		return messages.SecretUpdateMsg{}
 	}

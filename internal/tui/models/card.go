@@ -15,15 +15,15 @@ type BankCardSecretModel struct {
 	cardInputs []textinput.Model
 	focused    int
 	windowSize tea.WindowSizeMsg
-	isViewMode bool
-	secretData messages.SecretCard
+	isEditMode bool   // Флаг режима редактирования
+	sid        string // id для редактирования
 }
 
 // NewBankCardSecretModel - метод создания модель окна секрета (банковская карта)
 func NewBankCardSecretModel() BankCardSecretModel {
 	model := BankCardSecretModel{
 		focused:    0,
-		isViewMode: false,
+		isEditMode: false,
 	}
 
 	model.cardInputs = make([]textinput.Model, 5)
@@ -75,9 +75,9 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 		return m, nil
 
 	case messages.GetSecretCardMsg:
-		// Переключаемся в режим просмотра при получении данных
-		m.isViewMode = true
-		m.secretData = msg.Data
+		// Переключаемся в режим редактирования при получении данных
+		m.isEditMode = true
+		m.sid = msg.ID
 
 		// Заполняем поля данными для просмотра
 		m.cardInputs[0].SetValue(msg.Data.Name)
@@ -88,17 +88,6 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 		return m, nil
 
 	case tea.KeyMsg:
-		// В режиме просмотра обрабатываем только ESC
-		if m.isViewMode {
-			switch msg.String() {
-			case "esc":
-				return m, func() tea.Msg {
-					return messages.SecretAddCancelMsg{}
-				}
-			}
-			return m, nil
-		}
-
 		// Режим редактирования
 		switch msg.String() {
 		case "tab", "shift+tab", "up", "down":
@@ -131,24 +120,23 @@ func (m BankCardSecretModel) Update(msg tea.Msg) (BankCardSecretModel, tea.Cmd) 
 			return m, tea.Batch(cmds...)
 
 		case "enter":
-			return m, m.attemptAddSecret(
-				m.cardInputs[0].Value(),
-				m.cardInputs[1].Value(),
-				m.cardInputs[2].Value(),
-				m.cardInputs[3].Value(),
-				m.cardInputs[4].Value())
+			name := m.cardInputs[0].Value()
+			number := m.cardInputs[1].Value()
+			date := m.cardInputs[2].Value()
+			cvv := m.cardInputs[3].Value()
+			owner := m.cardInputs[4].Value()
+			if m.isEditMode {
+				m.isEditMode = false
+				return m, m.attemptEditSecret(m.sid, name, number, date, cvv, owner)
+			}
+			return m, m.attemptAddSecret(name, number, date, cvv, owner)
 
 		case "esc":
-			m.isViewMode = false
+			m.isEditMode = false
 			return m, func() tea.Msg {
 				return messages.SecretAddCancelMsg{}
 			}
 		}
-	}
-
-	// В режиме просмотра игнорируем ввод данных
-	if m.isViewMode {
-		return m, nil
 	}
 
 	// Обрабатываем ввод ТОЛЬКО для активного поля в режиме редактирования
@@ -175,22 +163,14 @@ func (m BankCardSecretModel) View() string {
 
 	// Заголовок в зависимости от режима
 	title := "💳 Банковская карта"
-	if m.isViewMode {
-		title = "👁️ Просмотр карты"
-	}
 
 	// Кнопки в зависимости от режима
-	var buttons string
-	if m.isViewMode {
-		buttons = styles.ButtonStyle.Render("ESC - Закрыть")
-	} else {
-		buttons = lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			styles.ButtonStyle.Render("Enter - Сохранить"),
-			styles.DividerStyle.Render(),
-			styles.ButtonStyle.Render("ESC - Отмена"),
-		)
-	}
+	buttons := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		styles.ButtonStyle.Render("Enter - Применить"),
+		styles.DividerStyle.Render(),
+		styles.ButtonStyle.Render("ESC - Отмена"),
+	)
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
@@ -224,32 +204,23 @@ func (m BankCardSecretModel) View() string {
 // renderInputField - метод для отрисовки полей ввода
 func (m BankCardSecretModel) renderInputField(label string, input textinput.Model, index int) string {
 	var inputStyle lipgloss.Style
-	if index == m.focused && !m.isViewMode {
+	if index == m.focused {
 		inputStyle = styles.FocusedInputFieldStyle
 	} else {
 		inputStyle = styles.InputFieldStyle
 	}
 
 	var fieldView string
-	if m.isViewMode {
-		// Режим просмотра - показываем статическое значение
+	// Режим редактирования
+	if index == m.focused {
+		// Активное поле - показываем с курсором
+		fieldView = input.View()
+	} else {
+		// Неактивное поле - показываем текущее значение
 		value := input.Value()
 		fieldView = value
 		if fieldView == "" {
-			fieldView = "не задано"
-		}
-	} else {
-		// Режим редактирования
-		if index == m.focused {
-			// Активное поле - показываем с курсором
-			fieldView = input.View()
-		} else {
-			// Неактивное поле - показываем текущее значение
-			value := input.Value()
-			fieldView = value
-			if fieldView == "" {
-				fieldView = input.Placeholder
-			}
+			fieldView = input.Placeholder
 		}
 	}
 
@@ -279,6 +250,38 @@ func (m BankCardSecretModel) attemptAddSecret(name string, number string, date s
 			return messages.ErrorMsg("Необходимо задать владельца карты")
 		}
 		return messages.AddSecretCardMsg{
+			Data: messages.SecretCard{
+				Name:   name,
+				Type:   models.SecretCardType,
+				Number: number,
+				CVV:    cvv,
+				Date:   date,
+				Owner:  owner,
+			},
+		}
+	}
+}
+
+// attemptEditSecret - метод обработки изменения секрета
+func (m BankCardSecretModel) attemptEditSecret(sid string, name string, number string, date string, cvv string, owner string) tea.Cmd {
+	return func() tea.Msg {
+		if len(name) == 0 {
+			return messages.ErrorMsg("Необходимо задать имя секрета")
+		}
+		if len(number) == 0 {
+			return messages.ErrorMsg("Необходимо задать номер карты")
+		}
+		if len(date) == 0 {
+			return messages.ErrorMsg("Необходимо задать дату выдачи карты")
+		}
+		if len(cvv) == 0 {
+			return messages.ErrorMsg("Необходимо задать CVV карты")
+		}
+		if len(owner) == 0 {
+			return messages.ErrorMsg("Необходимо задать владельца карты")
+		}
+		return messages.EditSecretCardMsg{
+			ID: sid,
 			Data: messages.SecretCard{
 				Name:   name,
 				Type:   models.SecretCardType,
