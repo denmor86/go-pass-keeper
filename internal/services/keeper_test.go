@@ -403,7 +403,7 @@ func TestEditSecret(t *testing.T) {
 				mockSecrets.EXPECT().Edit(gomock.Any(), gomock.Any()).Return(&models.SecretData{ID: uuid.MustParse(secret_uuid), Name: "Big secret", Type: "binary", Created: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC), Updated: time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)}, nil)
 			},
 			ExpectedError: nil,
-			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
+			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			Responce:      &pb.EditSecretResponse{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary", Created: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)), Updated: timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC))}},
 			UserId:        uuid.MustParse(user_uuid),
 		},
@@ -413,7 +413,7 @@ func TestEditSecret(t *testing.T) {
 				mockSecrets.EXPECT().Edit(gomock.Any(), gomock.Any()).Return(nil, storage.ErrNotFound)
 			},
 			ExpectedError: errors.New("rpc error: code = NotFound desc = not found"),
-			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
+			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			Responce:      nil,
 			UserId:        uuid.MustParse(user_uuid),
 		},
@@ -423,7 +423,7 @@ func TestEditSecret(t *testing.T) {
 				mockSecrets.EXPECT().Edit(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to edit secret:"))
 			},
 			ExpectedError: errors.New("rpc error: code = Internal desc = failed to edit secret:"),
-			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
+			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			Responce:      nil,
 			UserId:        uuid.MustParse(user_uuid),
 		},
@@ -432,7 +432,7 @@ func TestEditSecret(t *testing.T) {
 			SetupMocks: func() {
 			},
 			ExpectedError: errors.New("rpc error: code = Unauthenticated desc = unknown user"),
-			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
+			Request:       &pb.EditSecretRequest{Meta: &pb.SecretMetadata{Id: secret_uuid, Name: "Big secret", Type: "binary"}, Content: []byte("0x100")},
 			Responce:      nil,
 			UserId:        uuid.Nil,
 		},
