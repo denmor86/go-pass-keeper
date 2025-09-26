@@ -479,3 +479,121 @@ func TestKeeperClient_DeleteSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestKeeperClient_EditSecret(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := mocks.NewMockKeeperClient(ctrl)
+
+	secretInfo := &models.SecretInfo{
+		ID:   "secret-123",
+		Name: "test-secret",
+		Type: "password",
+	}
+	content := []byte("encrypted-content")
+	pbCreatedTime := timestamppb.New(time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC))
+	mdCreatedTime := time.Date(2025, time.September, 21, 10, 30, 0, 0, time.UTC)
+	testCases := []struct {
+		TestName       string
+		SetupMocks     func()
+		Client         pb.KeeperClient
+		Info           *models.SecretInfo
+		Content        []byte
+		ExpectedResult *models.SecretInfo
+		ExpectedError  string
+	}{
+		{
+			TestName: "Success. Edit secret",
+			SetupMocks: func() {
+				mockClient.EXPECT().EditSecret(gomock.Any(), &pb.EditSecretRequest{
+					Meta:    secretInfo.ToProtoMetadata(),
+					Content: content,
+				}).Return(&pb.EditSecretResponse{
+					Meta: &pb.SecretMetadata{
+						Id:      "secret-1234",
+						Name:    "test-secret",
+						Type:    "password",
+						Created: pbCreatedTime,
+						Updated: pbCreatedTime,
+					},
+				}, nil)
+			},
+			Client:  mockClient,
+			Info:    secretInfo,
+			Content: content,
+			ExpectedResult: &models.SecretInfo{
+				ID:      "secret-1234",
+				Name:    "test-secret",
+				Type:    "password",
+				Created: mdCreatedTime,
+				Updated: mdCreatedTime,
+			},
+			ExpectedError: "",
+		},
+		{
+			TestName:       "Error. Client not connected",
+			SetupMocks:     func() {},
+			Client:         nil,
+			Info:           secretInfo,
+			Content:        content,
+			ExpectedResult: nil,
+			ExpectedError:  "client not connected",
+		},
+		{
+			TestName: "Error. User unauthenticated",
+			SetupMocks: func() {
+				mockClient.EXPECT().EditSecret(gomock.Any(), gomock.Any()).Return(
+					nil, status.Error(codes.Unauthenticated, "unauthenticated"),
+				)
+			},
+			Client:         mockClient,
+			Info:           secretInfo,
+			Content:        content,
+			ExpectedResult: nil,
+			ExpectedError:  "user unauthenticated",
+		},
+		{
+			TestName: "Error. Internal error",
+			SetupMocks: func() {
+				mockClient.EXPECT().EditSecret(gomock.Any(), gomock.Any()).Return(
+					nil, status.Error(codes.Internal, "internal error"),
+				)
+			},
+			Client:         mockClient,
+			Info:           secretInfo,
+			Content:        content,
+			ExpectedResult: nil,
+			ExpectedError:  "internal error",
+		},
+		{
+			TestName:       "Error. Nil secret info",
+			SetupMocks:     func() {},
+			Client:         mockClient,
+			Info:           nil,
+			Content:        content,
+			ExpectedResult: nil,
+			ExpectedError:  "invalid info",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			tc.SetupMocks()
+
+			uc := &KeeperClient{
+				client: tc.Client,
+				ctx:    context.Background(),
+			}
+
+			result, err := uc.EditSecret(tc.Info, tc.Content)
+
+			if tc.ExpectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.ExpectedError)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.ExpectedResult, result)
+			}
+		})
+	}
+}

@@ -97,18 +97,18 @@ func (m *MockSecret) EXPECT() *MockSecretMockRecorder {
 }
 
 // Add mocks base method.
-func (m_2 *MockSecret) Add(ctx context.Context, uid uuid.UUID, m *models.SecretData) (*models.SecretData, error) {
+func (m_2 *MockSecret) Add(ctx context.Context, m *models.SecretData) (*models.SecretData, error) {
 	m_2.ctrl.T.Helper()
-	ret := m_2.ctrl.Call(m_2, "Add", ctx, uid, m)
+	ret := m_2.ctrl.Call(m_2, "Add", ctx, m)
 	ret0, _ := ret[0].(*models.SecretData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Add indicates an expected call of Add.
-func (mr *MockSecretMockRecorder) Add(ctx, uid, m any) *gomock.Call {
+func (mr *MockSecretMockRecorder) Add(ctx, m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockSecret)(nil).Add), ctx, uid, m)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockSecret)(nil).Add), ctx, m)
 }
 
 // Delete mocks base method.
@@ -123,6 +123,21 @@ func (m *MockSecret) Delete(ctx context.Context, sid uuid.UUID) error {
 func (mr *MockSecretMockRecorder) Delete(ctx, sid any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockSecret)(nil).Delete), ctx, sid)
+}
+
+// Edit mocks base method.
+func (m_2 *MockSecret) Edit(ctx context.Context, m *models.SecretData) (*models.SecretData, error) {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "Edit", ctx, m)
+	ret0, _ := ret[0].(*models.SecretData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Edit indicates an expected call of Edit.
+func (mr *MockSecretMockRecorder) Edit(ctx, m any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Edit", reflect.TypeOf((*MockSecret)(nil).Edit), ctx, m)
 }
 
 // Get mocks base method.

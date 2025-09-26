@@ -82,6 +82,26 @@ func (mr *MockKeeperClientMockRecorder) DeleteSecret(ctx, in any, opts ...any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecret", reflect.TypeOf((*MockKeeperClient)(nil).DeleteSecret), varargs...)
 }
 
+// EditSecret mocks base method.
+func (m *MockKeeperClient) EditSecret(ctx context.Context, in *proto.EditSecretRequest, opts ...grpc.CallOption) (*proto.EditSecretResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "EditSecret", varargs...)
+	ret0, _ := ret[0].(*proto.EditSecretResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EditSecret indicates an expected call of EditSecret.
+func (mr *MockKeeperClientMockRecorder) EditSecret(ctx, in any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditSecret", reflect.TypeOf((*MockKeeperClient)(nil).EditSecret), varargs...)
+}
+
 // GetSecret mocks base method.
 func (m *MockKeeperClient) GetSecret(ctx context.Context, in *proto.GetSecretRequest, opts ...grpc.CallOption) (*proto.GetSecretResponse, error) {
 	m.ctrl.T.Helper()
@@ -174,6 +194,21 @@ func (m *MockKeeperServer) DeleteSecret(arg0 context.Context, arg1 *proto.Delete
 func (mr *MockKeeperServerMockRecorder) DeleteSecret(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecret", reflect.TypeOf((*MockKeeperServer)(nil).DeleteSecret), arg0, arg1)
+}
+
+// EditSecret mocks base method.
+func (m *MockKeeperServer) EditSecret(arg0 context.Context, arg1 *proto.EditSecretRequest) (*proto.EditSecretResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EditSecret", arg0, arg1)
+	ret0, _ := ret[0].(*proto.EditSecretResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EditSecret indicates an expected call of EditSecret.
+func (mr *MockKeeperServerMockRecorder) EditSecret(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditSecret", reflect.TypeOf((*MockKeeperServer)(nil).EditSecret), arg0, arg1)
 }
 
 // GetSecret mocks base method.

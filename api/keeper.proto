@@ -19,6 +19,7 @@ service Keeper {
   rpc AddSecret(AddSecretRequest) returns (AddSecretResponse);
   rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
   rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+  rpc EditSecret(EditSecretRequest) returns (EditSecretResponse);
 }
 
 message GetSecretsRequest {
@@ -52,5 +53,14 @@ message DeleteSecretRequest {
 }
 
 message DeleteSecretResponse {
+  SecretMetadata meta = 1;
+}
+
+message EditSecretRequest {
+  SecretMetadata meta = 1;
+  bytes content = 2;
+}
+
+message EditSecretResponse {
   SecretMetadata meta = 1;
 }

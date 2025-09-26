@@ -101,7 +101,7 @@ func (uc *KeeperClient) AddSecret(info *models.SecretInfo, content []byte) (*mod
 		logger.Warn("User unauthenticated", err.Error())
 		return nil, fmt.Errorf("user unauthenticated")
 	default:
-		logger.Warn("User login error", err.Error())
+		logger.Warn("Add secret error", err.Error())
 		return nil, fmt.Errorf("internal error")
 	}
 }
@@ -137,7 +137,7 @@ func (uc *KeeperClient) GetSecrets() ([]*models.SecretInfo, error) {
 		logger.Warn("User unauthenticated", err.Error())
 		return nil, fmt.Errorf("user unauthenticated")
 	default:
-		logger.Warn("Get secret error", err.Error())
+		logger.Warn("Get secrets error", err.Error())
 		return nil, fmt.Errorf("internal error")
 	}
 }
@@ -157,5 +157,30 @@ func (uc *KeeperClient) DeleteSecret(sid string) (string, error) {
 	default:
 		logger.Warn("Secret delete error", err.Error())
 		return "", fmt.Errorf("internal error")
+	}
+}
+
+// EditSecret - метод редактирует секрет
+func (uc *KeeperClient) EditSecret(info *models.SecretInfo, content []byte) (*models.SecretInfo, error) {
+	if info == nil {
+		return nil, fmt.Errorf("invalid info")
+	}
+	if uc.client == nil {
+		return nil, fmt.Errorf("client not connected")
+	}
+	resp, err := uc.client.EditSecret(uc.ctx,
+		&pb.EditSecretRequest{
+			Meta:    info.ToProtoMetadata(),
+			Content: content},
+	)
+	switch status.Code(err) {
+	case codes.OK:
+		return models.SecretInfoFromProtoMetadata(resp.GetMeta()), nil
+	case codes.Unauthenticated:
+		logger.Warn("User unauthenticated", err.Error())
+		return nil, fmt.Errorf("user unauthenticated")
+	default:
+		logger.Warn("Edit secret error", err.Error())
+		return nil, fmt.Errorf("internal error")
 	}
 }

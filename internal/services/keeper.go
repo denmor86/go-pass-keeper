@@ -41,14 +41,19 @@ func (s *Keeper) AddSecret(ctx context.Context, request *pb.AddSecretRequest) (*
 		Type:    request.GetMeta().GetType(),
 		Content: request.GetContent(),
 	}
-	secret, err := s.secrets.Add(ctx, uid, m)
+	secret, err := s.secrets.Add(ctx, m)
 	if err != nil {
 		if errors.Is(err, storage.ErrAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.AddSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: m.Name, Type: m.Type, Created: timestamppb.New(secret.Created), Updated: timestamppb.New(secret.Updated)}}, nil
+	return &pb.AddSecretResponse{Meta: &pb.SecretMetadata{
+		Id:      secret.ID.String(),
+		Name:    m.Name,
+		Type:    m.Type,
+		Created: timestamppb.New(secret.Created),
+		Updated: timestamppb.New(secret.Updated)}}, nil
 }
 
 // GetSecret - метод для получения секрета пользователя
@@ -68,7 +73,13 @@ func (s *Keeper) GetSecret(ctx context.Context, request *pb.GetSecretRequest) (*
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.GetSecretResponse{Meta: &pb.SecretMetadata{Id: secret.ID.String(), Name: secret.Name, Type: secret.Type, Created: timestamppb.New(secret.Created), Updated: timestamppb.New(secret.Updated)}, Content: secret.Content}, nil
+	return &pb.GetSecretResponse{Meta: &pb.SecretMetadata{
+		Id:      secret.ID.String(),
+		Name:    secret.Name,
+		Type:    secret.Type,
+		Created: timestamppb.New(secret.Created),
+		Updated: timestamppb.New(secret.Updated)},
+		Content: secret.Content}, nil
 }
 
 // DeleteSecret - метод удаления секрета пользователя
@@ -118,6 +129,33 @@ func (s *Keeper) GetSecrets(ctx context.Context, request *pb.GetSecretsRequest) 
 	}
 
 	return resp, nil
+}
+
+// EditSecret - метод для добавления секрета
+func (s *Keeper) EditSecret(ctx context.Context, request *pb.EditSecretRequest) (*pb.EditSecretResponse, error) {
+	uid, err := usercontext.GetUserId(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+	m := &models.SecretData{
+		UserID:  uid,
+		Name:    request.GetMeta().GetName(),
+		Type:    request.GetMeta().GetType(),
+		Content: request.GetContent(),
+	}
+	secret, err := s.secrets.Edit(ctx, m)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &pb.EditSecretResponse{Meta: &pb.SecretMetadata{
+		Id:      secret.ID.String(),
+		Name:    m.Name,
+		Type:    m.Type,
+		Created: timestamppb.New(secret.Created),
+		Updated: timestamppb.New(secret.Updated)}}, nil
 }
 
 func (s *Keeper) RegisterService(r grpc.ServiceRegistrar) {

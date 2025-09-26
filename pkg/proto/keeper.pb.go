@@ -458,6 +458,102 @@ func (x *DeleteSecretResponse) GetMeta() *SecretMetadata {
 	return nil
 }
 
+type EditSecretRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Meta          *SecretMetadata        `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditSecretRequest) Reset() {
+	*x = EditSecretRequest{}
+	mi := &file_api_keeper_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditSecretRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditSecretRequest) ProtoMessage() {}
+
+func (x *EditSecretRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_keeper_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditSecretRequest.ProtoReflect.Descriptor instead.
+func (*EditSecretRequest) Descriptor() ([]byte, []int) {
+	return file_api_keeper_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *EditSecretRequest) GetMeta() *SecretMetadata {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+func (x *EditSecretRequest) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+type EditSecretResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Meta          *SecretMetadata        `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditSecretResponse) Reset() {
+	*x = EditSecretResponse{}
+	mi := &file_api_keeper_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditSecretResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditSecretResponse) ProtoMessage() {}
+
+func (x *EditSecretResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_keeper_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditSecretResponse.ProtoReflect.Descriptor instead.
+func (*EditSecretResponse) Descriptor() ([]byte, []int) {
+	return file_api_keeper_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *EditSecretResponse) GetMeta() *SecretMetadata {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
 var File_api_keeper_proto protoreflect.FileDescriptor
 
 const file_api_keeper_proto_rawDesc = "" +
@@ -489,13 +585,20 @@ const file_api_keeper_proto_rawDesc = "" +
 	"\x13DeleteSecretRequest\x12'\n" +
 	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\"?\n" +
 	"\x14DeleteSecretResponse\x12'\n" +
-	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta2\x84\x02\n" +
+	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\"V\n" +
+	"\x11EditSecretRequest\x12'\n" +
+	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\"=\n" +
+	"\x12EditSecretResponse\x12'\n" +
+	"\x04meta\x18\x01 \x01(\v2\x13.api.SecretMetadataR\x04meta2\xc3\x02\n" +
 	"\x06Keeper\x12=\n" +
 	"\n" +
 	"GetSecrets\x12\x16.api.GetSecretsRequest\x1a\x17.api.GetSecretsResponse\x12:\n" +
 	"\tAddSecret\x12\x15.api.AddSecretRequest\x1a\x16.api.AddSecretResponse\x12:\n" +
 	"\tGetSecret\x12\x15.api.GetSecretRequest\x1a\x16.api.GetSecretResponse\x12C\n" +
-	"\fDeleteSecret\x12\x18.api.DeleteSecretRequest\x1a\x19.api.DeleteSecretResponseB\vZ\tpkg/protob\x06proto3"
+	"\fDeleteSecret\x12\x18.api.DeleteSecretRequest\x1a\x19.api.DeleteSecretResponse\x12=\n" +
+	"\n" +
+	"EditSecret\x12\x16.api.EditSecretRequest\x1a\x17.api.EditSecretResponseB\vZ\tpkg/protob\x06proto3"
 
 var (
 	file_api_keeper_proto_rawDescOnce sync.Once
@@ -509,7 +612,7 @@ func file_api_keeper_proto_rawDescGZIP() []byte {
 	return file_api_keeper_proto_rawDescData
 }
 
-var file_api_keeper_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_keeper_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_api_keeper_proto_goTypes = []any{
 	(*SecretMetadata)(nil),        // 0: api.SecretMetadata
 	(*GetSecretsRequest)(nil),     // 1: api.GetSecretsRequest
@@ -520,11 +623,13 @@ var file_api_keeper_proto_goTypes = []any{
 	(*GetSecretResponse)(nil),     // 6: api.GetSecretResponse
 	(*DeleteSecretRequest)(nil),   // 7: api.DeleteSecretRequest
 	(*DeleteSecretResponse)(nil),  // 8: api.DeleteSecretResponse
-	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
+	(*EditSecretRequest)(nil),     // 9: api.EditSecretRequest
+	(*EditSecretResponse)(nil),    // 10: api.EditSecretResponse
+	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
 }
 var file_api_keeper_proto_depIdxs = []int32{
-	9,  // 0: api.SecretMetadata.created:type_name -> google.protobuf.Timestamp
-	9,  // 1: api.SecretMetadata.updated:type_name -> google.protobuf.Timestamp
+	11, // 0: api.SecretMetadata.created:type_name -> google.protobuf.Timestamp
+	11, // 1: api.SecretMetadata.updated:type_name -> google.protobuf.Timestamp
 	0,  // 2: api.GetSecretsResponse.secrets:type_name -> api.SecretMetadata
 	0,  // 3: api.AddSecretRequest.meta:type_name -> api.SecretMetadata
 	0,  // 4: api.AddSecretResponse.meta:type_name -> api.SecretMetadata
@@ -532,19 +637,23 @@ var file_api_keeper_proto_depIdxs = []int32{
 	0,  // 6: api.GetSecretResponse.meta:type_name -> api.SecretMetadata
 	0,  // 7: api.DeleteSecretRequest.meta:type_name -> api.SecretMetadata
 	0,  // 8: api.DeleteSecretResponse.meta:type_name -> api.SecretMetadata
-	1,  // 9: api.Keeper.GetSecrets:input_type -> api.GetSecretsRequest
-	3,  // 10: api.Keeper.AddSecret:input_type -> api.AddSecretRequest
-	5,  // 11: api.Keeper.GetSecret:input_type -> api.GetSecretRequest
-	7,  // 12: api.Keeper.DeleteSecret:input_type -> api.DeleteSecretRequest
-	2,  // 13: api.Keeper.GetSecrets:output_type -> api.GetSecretsResponse
-	4,  // 14: api.Keeper.AddSecret:output_type -> api.AddSecretResponse
-	6,  // 15: api.Keeper.GetSecret:output_type -> api.GetSecretResponse
-	8,  // 16: api.Keeper.DeleteSecret:output_type -> api.DeleteSecretResponse
-	13, // [13:17] is the sub-list for method output_type
-	9,  // [9:13] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	0,  // 9: api.EditSecretRequest.meta:type_name -> api.SecretMetadata
+	0,  // 10: api.EditSecretResponse.meta:type_name -> api.SecretMetadata
+	1,  // 11: api.Keeper.GetSecrets:input_type -> api.GetSecretsRequest
+	3,  // 12: api.Keeper.AddSecret:input_type -> api.AddSecretRequest
+	5,  // 13: api.Keeper.GetSecret:input_type -> api.GetSecretRequest
+	7,  // 14: api.Keeper.DeleteSecret:input_type -> api.DeleteSecretRequest
+	9,  // 15: api.Keeper.EditSecret:input_type -> api.EditSecretRequest
+	2,  // 16: api.Keeper.GetSecrets:output_type -> api.GetSecretsResponse
+	4,  // 17: api.Keeper.AddSecret:output_type -> api.AddSecretResponse
+	6,  // 18: api.Keeper.GetSecret:output_type -> api.GetSecretResponse
+	8,  // 19: api.Keeper.DeleteSecret:output_type -> api.DeleteSecretResponse
+	10, // 20: api.Keeper.EditSecret:output_type -> api.EditSecretResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_api_keeper_proto_init() }
@@ -559,7 +668,7 @@ func file_api_keeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_keeper_proto_rawDesc), len(file_api_keeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

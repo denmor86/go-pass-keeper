@@ -24,7 +24,7 @@ func NewSecretStorage(db *Database) *SecretStorage {
 }
 
 // Add - метод добавляет секрет пользователя в хранилище
-func (s *SecretStorage) Add(ctx context.Context, uid uuid.UUID, secret *models.SecretData) (*models.SecretData, error) {
+func (s *SecretStorage) Add(ctx context.Context, secret *models.SecretData) (*models.SecretData, error) {
 	const query = `
 		INSERT INTO secrets (user_id, type_secret, name, content)
 		VALUES ($1, $2, $3, $4)
@@ -121,4 +121,25 @@ func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.Secr
 	}
 
 	return res, nil
+}
+
+// Edit - метод изменяет запись секрета (возвращает модель секрета)
+func (s *SecretStorage) Edit(ctx context.Context, secret *models.SecretData) (*models.SecretData, error) {
+	const query = `
+		UPDATE secrets 
+		SET name = $2, content = $3, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+		RETURNING id, user_id, type_secret, name, content, created_at, updated_at;
+`
+	m := &models.SecretData{}
+	err := s.db.Pool.QueryRow(ctx, query, secret.ID, secret.Name, secret.Content).
+		Scan(&m.ID, &m.UserID, &m.Type, &m.Name, &m.Content, &m.Created, &m.Updated)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to edit secret: %w", err)
+	}
+
+	return m, nil
 }
