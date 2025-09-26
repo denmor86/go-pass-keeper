@@ -137,7 +137,12 @@ func (s *Keeper) EditSecret(ctx context.Context, request *pb.EditSecretRequest) 
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
+	sid, err := uuid.Parse(request.GetMeta().GetId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 	m := &models.SecretData{
+		ID:      sid,
 		UserID:  uid,
 		Name:    request.GetMeta().GetName(),
 		Type:    request.GetMeta().GetType(),
