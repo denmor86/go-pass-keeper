@@ -1,0 +1,145 @@
+package storage
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"go-pass-keeper/internal/models"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+)
+
+// UserStorage - хранилище секретов пользователей
+type SecretStorage struct {
+	db *Database // указатель на базу данных
+}
+
+// NewUserStorage - метод создаёт подключение к таблице пользователей
+func NewSecretStorage(db *Database) *SecretStorage {
+	return &SecretStorage{db: db}
+}
+
+// Add - метод добавляет секрет пользователя в хранилище
+func (s *SecretStorage) Add(ctx context.Context, secret *models.SecretData) (*models.SecretData, error) {
+	const query = `
+		INSERT INTO secrets (user_id, type_secret, name, content)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at, updated_at
+`
+	m := &models.SecretData{}
+	err := s.db.Pool.QueryRow(ctx, query, secret.UserID, secret.Type, secret.Name, secret.Content).Scan(&m.ID, &m.Created, &m.Updated)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(string(pgErr.Code)) {
+			return m, ErrAlreadyExists
+		}
+		return nil, fmt.Errorf("failed to add secret: %w", err)
+	}
+
+	return m, nil
+}
+
+// Get - получение записи с секретом (возвращает модель секрета)
+func (s *SecretStorage) Get(ctx context.Context, sid uuid.UUID) (*models.SecretData, error) {
+	const query = `
+		SELECT id, type_secret, name, content, created_at, updated_at FROM secrets
+		WHERE id = $1;
+`
+	m := &models.SecretData{}
+	err := s.db.Pool.QueryRow(ctx, query, sid.String()).Scan(&m.ID, &m.Type, &m.Name, &m.Content, &m.Created, &m.Updated)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get secret: %w", err)
+	}
+	return m, nil
+}
+
+// Delete - метод удаляет запись секрета из таблицы
+func (s *SecretStorage) Delete(ctx context.Context, sid uuid.UUID) error {
+	const query = `
+		DELETE FROM secrets
+		WHERE id = $1;
+`
+	res, err := s.db.Pool.Exec(ctx, query, sid)
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// List - метод возвращает список секретов пользователя
+func (s *SecretStorage) List(ctx context.Context, uid uuid.UUID) ([]*models.SecretData, error) {
+	const SQL = `
+		SELECT id, user_id, type_secret, name, created_at, updated_at FROM secrets
+		WHERE user_id = $1 ORDER BY name
+`
+	rows, err := s.db.Pool.Query(ctx, SQL, uid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get secrets: %w", err)
+	}
+	res := make([]*models.SecretData, 0)
+
+	for rows.Next() {
+		var (
+			id          uuid.UUID
+			user_id     uuid.UUID
+			type_secret string
+			name        string
+			created     time.Time
+			updated     time.Time
+		)
+		err := rows.Scan(
+			&id,
+			&user_id,
+			&type_secret,
+			&name,
+			&created,
+			&updated,
+		)
+		if err != nil {
+			return res, fmt.Errorf("failed scan secret data: %w", err)
+		}
+		res = append(res, &models.SecretData{
+			ID:      id,
+			UserID:  user_id,
+			Name:    name,
+			Type:    type_secret,
+			Created: created,
+			Updated: updated})
+	}
+
+	return res, nil
+}
+
+// Edit - метод изменяет запись секрета (возвращает модель секрета)
+func (s *SecretStorage) Edit(ctx context.Context, secret *models.SecretData) (*models.SecretData, error) {
+	const query = `
+		UPDATE secrets 
+		SET name = $2, content = $3, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+		RETURNING id, user_id, type_secret, name, content, created_at, updated_at;
+`
+	m := &models.SecretData{}
+	err := s.db.Pool.QueryRow(ctx, query, secret.ID, secret.Name, secret.Content).
+		Scan(&m.ID, &m.UserID, &m.Type, &m.Name, &m.Content, &m.Created, &m.Updated)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to edit secret: %w", err)
+	}
+
+	return m, nil
+}

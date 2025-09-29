@@ -1,0 +1,293 @@
+package messages
+
+import (
+	"fmt"
+	"go-pass-keeper/internal/models"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+// Тип переменной состояние перехода
+type MsgActionType int
+
+const (
+	AddSecretType MsgActionType = iota
+	EditSecretType
+)
+
+// EncryptConverter - интерфейс для расшифровки сообщений
+type EncryptConverter interface {
+	ToModel([]byte) (*models.SecretInfo, []byte, error)
+}
+
+// SecretPassword - модель с данными логин/пароль
+type SecretPassword struct {
+	Name     string
+	Type     string
+	Login    string
+	Password string
+}
+
+// AddSecretPasswordMsg - сообщение для добавления данными логин/пароль
+type AddSecretPasswordMsg struct {
+	Data SecretPassword
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *AddSecretPasswordMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretPassword(msg.Data.Login, msg.Data.Password)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// EditSecretPasswordMsg - сообщение для редактирования секрета (логин/пароль)
+type EditSecretPasswordMsg struct {
+	ID   string
+	Data SecretPassword
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *EditSecretPasswordMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretPassword(msg.Data.Login, msg.Data.Password)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{ID: msg.ID, Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// GetSecretPasswordMsg - сообщение для получения данных логин/пароль
+type GetSecretPasswordMsg struct {
+	ID   string
+	Data SecretPassword
+}
+
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
+func (msg *GetSecretPasswordMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
+	secret := &models.SecretPassword{}
+	err := secret.Decrypt(key, content)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt data: %w", err)
+	}
+	msg.ID = info.ID
+	msg.Data = SecretPassword{Name: info.Name, Type: info.Type, Login: secret.Login, Password: secret.Password}
+	return nil
+}
+
+// SecretCard - модель с данными карты
+type SecretCard struct {
+	Name   string
+	Type   string
+	Number string
+	Date   string
+	CVV    string
+	Owner  string
+}
+
+// AddSecretCardMsg - сообщение для добавления с данными карты
+type AddSecretCardMsg struct {
+	Data SecretCard
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *AddSecretCardMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretCard(msg.Data.Number, msg.Data.Date, msg.Data.CVV, msg.Data.Owner)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// EditSecretCardMsg - сообщение для редактирования данных карты
+type EditSecretCardMsg struct {
+	ID   string
+	Data SecretCard
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *EditSecretCardMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretCard(msg.Data.Number, msg.Data.Date, msg.Data.CVV, msg.Data.Owner)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{ID: msg.ID, Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// GetSecretCardMsg - сообщение для получения данных карты
+type GetSecretCardMsg struct {
+	ID   string
+	Data SecretCard
+}
+
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
+func (msg *GetSecretCardMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
+	secret := &models.SecretCard{}
+	err := secret.Decrypt(key, content)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt data: %w", err)
+	}
+	msg.ID = info.ID
+	msg.Data = SecretCard{Name: info.Name, Type: info.Type, Number: secret.Number, CVV: secret.CVV, Date: secret.Date, Owner: secret.Owner}
+	return nil
+}
+
+// SecretText - модель с текстовыми данными
+type SecretText struct {
+	Name string
+	Type string
+	Text string
+}
+
+// AddSecretTextMsg - сообщение для добавления секрета с текстовыми данными
+type AddSecretTextMsg struct {
+	Data SecretText
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *AddSecretTextMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretText(msg.Data.Text)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// EditSecretTextMsg - сообщение для изменения секрета с текстовыми данными
+type EditSecretTextMsg struct {
+	ID   string
+	Data SecretText
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *EditSecretTextMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretText(msg.Data.Text)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{ID: msg.ID, Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// GetSecretTextMsg - сообщение для получения секрета с  текстовыми данными
+type GetSecretTextMsg struct {
+	ID   string
+	Data SecretText
+}
+
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
+func (msg *GetSecretTextMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
+	secret := &models.SecretText{}
+	err := secret.Decrypt(key, content)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt data: %w", err)
+	}
+	msg.ID = info.ID
+	msg.Data = SecretText{Name: info.Name, Type: info.Type, Text: secret.Text}
+	return nil
+}
+
+// SecretBinary - модель с бинарными данными
+type SecretBinary struct {
+	Name string
+	Type string
+	Blob []byte
+}
+
+// AddSecretBinaryMsg - сообщение для добавления секрета с бинарными данными
+type AddSecretBinaryMsg struct {
+	Data SecretBinary
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *AddSecretBinaryMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretBinary(msg.Data.Blob)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// EditSecretBinaryMsg - сообщение для изменения секрета с бинарными данными
+type EditSecretBinaryMsg struct {
+	ID   string
+	Data SecretBinary
+}
+
+// ToModel - метод формирует информацию о секрете и шифрованный контент
+func (msg *EditSecretBinaryMsg) ToModel(key []byte) (*models.SecretInfo, []byte, error) {
+
+	secret := models.NewSecretBinary(msg.Data.Blob)
+	data, err := secret.Encrypt(key)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+	return &models.SecretInfo{ID: msg.ID, Name: msg.Data.Name, Type: msg.Data.Type}, data, nil
+}
+
+// GetSecretBinaryMsg - сообщение для получения секрета с бинарными данными
+type GetSecretBinaryMsg struct {
+	ID   string
+	Data SecretBinary
+}
+
+// FromModel - метод формирует информацию о секрете, расшифрованный контент и формирует сообщение
+func (msg *GetSecretBinaryMsg) FromModel(key []byte, info *models.SecretInfo, content []byte) error {
+	secret := &models.SecretBinary{}
+	err := secret.Decrypt(key, content)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt data: %w", err)
+	}
+	msg.ID = info.ID
+	msg.Data = SecretBinary{Name: info.Name, Type: info.Type, Blob: secret.Blob}
+	return nil
+}
+
+// ToMessage - метод формирует сообщение на основе информации о секрете
+func ToMessage(key []byte, info *models.SecretInfo, content []byte) tea.Msg {
+	switch info.Type {
+	case models.SecretPasswordType:
+		msg := GetSecretPasswordMsg{ID: info.ID}
+		err := msg.FromModel(key, info, content)
+		if err != nil {
+			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
+		}
+		return msg
+	case models.SecretCardType:
+		msg := GetSecretCardMsg{ID: info.ID}
+		err := msg.FromModel(key, info, content)
+		if err != nil {
+			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
+		}
+		return msg
+	case models.SecretTextType:
+		msg := GetSecretTextMsg{ID: info.ID}
+		err := msg.FromModel(key, info, content)
+		if err != nil {
+			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
+		}
+		return msg
+	case models.SecretBinaryType:
+		msg := GetSecretBinaryMsg{ID: info.ID}
+		err := msg.FromModel(key, info, content)
+		if err != nil {
+			return ErrorMsg(fmt.Sprintf("Ошибка разбора сообщения: %s", err.Error()))
+		}
+		return msg
+	default:
+		return ErrorMsg("Неизвестный тип сообщения")
+	}
+}
